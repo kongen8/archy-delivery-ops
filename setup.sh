@@ -11,10 +11,11 @@ fi
 SUPABASE_URL="$1"
 SUPABASE_ANON_KEY="$2"
 
-# Replace placeholders in index.html
-sed -i.bak "s|YOUR_SUPABASE_URL|${SUPABASE_URL}|g" public/index.html
-sed -i.bak "s|YOUR_SUPABASE_ANON_KEY|${SUPABASE_ANON_KEY}|g" public/index.html
-rm -f public/index.html.bak
+TARGET=public/src/config/supabase.js
 
-echo "Done! Supabase credentials injected into public/index.html"
+sed -i.bak "s|YOUR_SUPABASE_URL|${SUPABASE_URL}|g" "${TARGET}"
+sed -i.bak "s|YOUR_SUPABASE_ANON_KEY|${SUPABASE_ANON_KEY}|g" "${TARGET}"
+rm -f "${TARGET}.bak"
+
+echo "Done! Supabase credentials injected into ${TARGET}"
 echo "You can now deploy with: vercel --prod"

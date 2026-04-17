@@ -1,0 +1,78 @@
+*{font-family:'DM Sans',system-ui,sans-serif}
+html,body{margin:0}
+body{background:#f8f7f4}
+.stop-card{transition:all .15s;border-left:3px solid transparent}
+.stop-card:hover{border-left-color:#2563eb}
+.stop-card.delivered{opacity:.55;border-left-color:#16a34a}
+.stop-card.failed{opacity:.7;border-left-color:#dc2626}
+.pill{padding:6px 14px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#64748b;cursor:pointer;font-size:13px;font-weight:500;transition:all .1s}
+.pill.active{background:#1e293b;color:#fff;border-color:#1e293b}
+.progress-bar{transition:width .5s ease}
+.view-tab{padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-size:14px;color:#94a3b8;transition:all .15s}
+.view-tab.active{border-bottom-color:#1e293b;color:#0f172a;font-weight:600}
+@media print{.no-print{display:none!important}.print-only{display:block!important}}
+.print-only{display:none}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+
+/* ===== Responsive shell ===== */
+.app-shell{max-width:720px;margin:0 auto;padding:16px 16px 80px}
+.app-shell.wide{max-width:1400px}
+@media (max-width:700px){.app-shell,.app-shell.wide{padding:12px 12px 80px}}
+
+/* ===== Cake World map ===== */
+/* Pixel marker float animation */
+@keyframes marker-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes marker-float {
+    0%, 100% { transform: translateY(0); }
+  }
+}
+
+/* Sprinkle fall animation */
+@keyframes sprinkle-fall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(60px) rotate(180deg); opacity: 0; }
+}
+
+.cake-map-shell{position:relative;border-radius:14px;overflow:hidden;border:3px solid #4e342e;box-shadow:5px 5px 0 #4e342e;background:#fce4ec;height:calc(100vh - 320px);min-height:420px}
+#cake-map{position:absolute;inset:0;width:100%;height:100%}
+.cake-popup .maplibregl-popup-content{padding:0;background:transparent;box-shadow:none;border-radius:0}
+.cake-popup .maplibregl-popup-tip{display:none}
+.maplibregl-ctrl-bottom-right{margin-bottom:6px!important;margin-right:6px!important}
+.maplibregl-ctrl-attrib{background:rgba(255,248,231,.85)!important;font-family:'DM Sans',system-ui,sans-serif}
+/* GPU hint on each marker's inner wrapper so compositing is cheap. */
+.cake-map-shell .maplibregl-marker>*{will-change:transform}
+/* Ground-plane scaling: cakes are DOM markers, which by default render at a
+   constant screen-pixel size. That looks wrong when you zoom out (tiles
+   shrink, cake stays same size, so the cake appears proportionally huge).
+   We scale the wrapper (the first child of the MapLibre marker root — NOT
+   the label, which is the second child and must stay legible) around its
+   bottom-center so the liner/plate pedestal stays glued to the lnglat
+   while the cake visually grows and shrinks with zoom. --cake-scale is
+   written to the shell element by a map 'zoom' handler. */
+.cake-map-shell .maplibregl-marker>div:first-child{
+  transform:scale(var(--cake-scale,1));
+  transform-origin:bottom center;
+}
+/* Every delivery cupcake and depot cake has a .cake-bobber child that carries
+   the marker-float animation. The STATIC pedestal (liner for deliveries,
+   plate for depots) lives OUTSIDE the bobber, so the bobber can translate
+   freely without ever shifting the geographic anchor.
+   During pan/zoom we additionally force the bobber transform back to identity
+   so the float animation can't momentarily visually offset the cupcake top
+   from its pedestal while the user is interacting. We can't use
+   `animation-play-state:paused` here — that freezes each bobber at whatever
+   translateY it happened to be at (per-cake duration/delay makes this
+   different for every marker), which was the original "cakes drift off the
+   dots during zoom" bug. Removing the animation entirely clears the computed
+   transform back to identity. We target .cake-bobber specifically so:
+     - MapLibre's own root-marker transform (positioning) is untouched
+     - The absolute company-name label's translateX(-50%) is untouched
+     - The shadow's translateX(-50%) is untouched */
+.cake-map-shell.cake-moving .cake-bobber{animation:none!important;transform:none!important}
+@media (max-width:700px){.cake-map-shell{height:calc(100vh - 280px);min-height:340px;border-radius:10px;border-width:2px;box-shadow:3px 3px 0 #4e342e}}
