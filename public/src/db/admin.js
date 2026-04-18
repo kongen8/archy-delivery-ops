@@ -127,6 +127,96 @@ const Admin = {
     if (error) throw error;
     return data;
   },
+
+  // Scan every geocoded recipient and figure out which ones should be moved
+  // to `bakeryId` because their lat/lon now falls inside one of its areas.
+  // Uses the pure computeReassignment helper so the decision logic is unit-
+  // tested. Returns the full preview shape (see reassign.js).
+  async previewReassignment(bakeryId) {
+    if (!sb) throw new Error('sb not ready');
+    if (typeof computeReassignment !== 'function') throw new Error('computeReassignment not loaded');
+    const [thisRes, othersRes, recipsRes] = await Promise.all([
+      sb.from('delivery_areas').select('id, geometry').eq('bakery_id', bakeryId),
+      sb.from('delivery_areas').select('id, bakery_id, name, geometry').neq('bakery_id', bakeryId),
+      sb.from('recipients')
+        .select('id, bakery_id, campaign_id, lat, lon, customizations, company')
+        .not('lat', 'is', null)
+        .not('lon', 'is', null),
+    ]);
+    if (thisRes.error) throw thisRes.error;
+    if (othersRes.error) throw othersRes.error;
+    if (recipsRes.error) throw recipsRes.error;
+
+    const otherByBakery = new Map();
+    for (const a of othersRes.data || []) {
+      if (!otherByBakery.has(a.bakery_id)) otherByBakery.set(a.bakery_id, { id: a.bakery_id, areas: [] });
+      otherByBakery.get(a.bakery_id).areas.push({ id: a.id, name: a.name, geometry: a.geometry });
+    }
+
+    return computeReassignment({
+      thisBakeryId: bakeryId,
+      thisBakeryAreas: thisRes.data || [],
+      otherBakeries: Array.from(otherByBakery.values()),
+      recipients: recipsRes.data || [],
+    });
+  },
+
+  // Execute the plan produced by previewReassignment:
+  //   1. UPDATE recipients.bakery_id (and strip customizations.legacy_region when set)
+  //   2. DELETE `routes` rows for the (campaign, bakery, area) triples that had
+  //      stops added or removed, so the adapter rebuilds from the new assignment.
+  // Returns { moved, routes_deleted_old, routes_deleted_new }.
+  async applyReassignment(bakeryId, preview) {
+    if (!sb) throw new Error('sb not ready');
+    if (!preview || !Array.isArray(preview.moves)) throw new Error('invalid preview');
+    const moves = preview.moves;
+    if (moves.length === 0) return { moved: 0, routes_deleted_old: 0, routes_deleted_new: 0 };
+
+    const withTag = moves.filter(m => m.strip_tag).map(m => m.recipient_id);
+    const withoutTag = moves.filter(m => !m.strip_tag).map(m => m.recipient_id);
+
+    if (withoutTag.length) {
+      const { error } = await sb.from('recipients')
+        .update({ bakery_id: bakeryId, assignment_status: 'assigned' })
+        .in('id', withoutTag);
+      if (error) throw error;
+    }
+
+    // Tag-stripping has to happen per-row because PostgREST update() takes a
+    // static body — `customizations - 'legacy_region'` requires a raw SQL
+    // expression. We fetch current customizations, mutate, and write back.
+    if (withTag.length) {
+      const { data: rows, error: selErr } = await sb.from('recipients')
+        .select('id, customizations')
+        .in('id', withTag);
+      if (selErr) throw selErr;
+      for (const r of rows || []) {
+        const next = { ...(r.customizations || {}) };
+        delete next.legacy_region;
+        const { error } = await sb.from('recipients')
+          .update({ bakery_id: bakeryId, assignment_status: 'assigned', customizations: next })
+          .eq('id', r.id);
+        if (error) throw error;
+      }
+    }
+
+    let routesOld = 0;
+    let routesNew = 0;
+    for (const k of preview.route_keys_old) {
+      const { error, count } = await sb.from('routes').delete({ count: 'exact' })
+        .eq('campaign_id', k.campaign_id).eq('bakery_id', k.bakery_id).eq('delivery_area_id', k.delivery_area_id);
+      if (error) throw error;
+      routesOld += count || 0;
+    }
+    for (const k of preview.route_keys_new) {
+      const { error, count } = await sb.from('routes').delete({ count: 'exact' })
+        .eq('campaign_id', k.campaign_id).eq('bakery_id', k.bakery_id).eq('delivery_area_id', k.delivery_area_id);
+      if (error) throw error;
+      routesNew += count || 0;
+    }
+
+    return { moved: moves.length, routes_deleted_old: routesOld, routes_deleted_new: routesNew };
+  },
 };
 
 function genToken() {
