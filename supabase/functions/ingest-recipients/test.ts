@@ -129,11 +129,14 @@ Deno.test('ai mapping: omitting column_mapping triggers AI (or fallback) and sti
   }
 });
 
-// gpt-4o-mini consistently leaves `address` un-split when the input also
-// contains empty city/state/zip keys (it interprets the empty string as "field
-// already filled in"). The bucket logic + per-batch fallback are validated by
-// the other tests; this assertion is gated on prompt-engineering work that
-// belongs in a follow-up. Re-enable by removing `.ignore`.
+// Marked `.ignore` because it depends on OpenAI being responsive AND the
+// account not being TPM-throttled. We verified via a `_debug_err` field in
+// an earlier deploy that this account 429s on the normalize call (the
+// longer of the two AI prompts) while the shorter mapping call slips
+// through. The pipeline behaves correctly under that 429 — it falls back
+// to raw mapped values via the per-batch try/catch in index.ts, which is
+// exactly what we want in production. Re-enable by deleting `.ignore`
+// once OpenAI quota is no longer a constraint.
 Deno.test.ignore('ai normalization: messy address gets split into parts', async () => {
   let cust, camp;
   try {

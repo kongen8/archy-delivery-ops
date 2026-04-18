@@ -72,9 +72,7 @@ Deno.serve(async (req) => {
   // 2. AI normalize in batches of 20, max 4 in flight. Per-batch fallback so
   //    an OpenAI failure on one batch doesn't take down the whole ingest.
   let normalized: NormalizedRow[];
-  console.log('[ingest] AI key set?', !!Deno.env.get('OPENAI_API_KEY'), 'ai_disabled?', body.ai_disabled, 'mapped count:', mapped.length);
   if (body.ai_disabled || !Deno.env.get('OPENAI_API_KEY')) {
-    console.log('[ingest] taking fallback path');
     normalized = mapped.map(m => ({
       company: m.company || null, contact_name: m.contact_name || null,
       phone: m.phone || null, email: m.email || null,
@@ -89,8 +87,7 @@ Deno.serve(async (req) => {
     let idx = 0;
     async function runBatch(b: number) {
       try { results[b] = await aiNormalizeRows(batches[b]); }
-      catch (e) {
-        console.log('[ingest] batch', b, 'fell back due to:', (e as Error).message);
+      catch (_) {
         results[b] = batches[b].map(m => ({
           company: m.company || null, contact_name: m.contact_name || null,
           phone: m.phone || null, email: m.email || null,
@@ -151,5 +148,5 @@ Deno.serve(async (req) => {
     if (error) return jsonResponse({ error: 'database_error', detail: error.message }, 500);
   }
 
-  return jsonResponse({ totals, sample_issues: [], mapping_used: mapping, _debug_normalized: normalized });
+  return jsonResponse({ totals, sample_issues: [], mapping_used: mapping });
 });

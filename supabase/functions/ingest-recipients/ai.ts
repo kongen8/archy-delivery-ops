@@ -118,7 +118,6 @@ Input rows: ${JSON.stringify(compactRows)}`;
   });
   if (!res.ok) throw new Error('OpenAI normalize call failed: ' + res.status);
   const json = await res.json();
-  console.log('[normalize] raw content:', json.choices[0].message.content);
   const parsed = JSON.parse(json.choices[0].message.content);
   if (!Array.isArray(parsed.rows) || parsed.rows.length !== rows.length) {
     throw new Error('OpenAI returned wrong row count');
