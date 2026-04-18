@@ -1,4 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 import { parseFile } from './parse.ts';
 import { legacyId } from './legacy_id.ts';
 import { bucketFor, Bucket } from './bucket.ts';
@@ -40,15 +41,89 @@ function applyMapping(headers: string[], row: string[], mapping: Record<string, 
   return out;
 }
 
+// Areas are loaded lazily and cached per-isolate. Supabase recycles edge
+// isolates often enough that polygon edits propagate within seconds; an
+// admin who needs an instant refresh can redeploy the function.
+type DeliveryArea = { id: string; bakery_id: string; geometry: unknown };
+let _areasCache: DeliveryArea[] | null = null;
+async function loadAreas(sb: SupabaseClient): Promise<DeliveryArea[]> {
+  if (_areasCache) return _areasCache;
+  const { data, error } = await sb.from('delivery_areas').select('id, bakery_id, geometry');
+  if (error) throw new Error('delivery_areas load failed: ' + error.message);
+  _areasCache = data || [];
+  return _areasCache;
+}
+function findAreaIn(areas: DeliveryArea[], lon: number, lat: number): { bakery_id: string; id: string } | null {
+  for (const a of areas) {
+    const pt = { type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: {} } as const;
+    const poly = { type: 'Feature', geometry: a.geometry, properties: {} } as const;
+    try {
+      if (booleanPointInPolygon(pt as never, poly as never)) return { bakery_id: a.bakery_id, id: a.id };
+    } catch (_) { continue; }
+  }
+  return null;
+}
+
+// Per-row re-geocode + re-bucket. Wired to the wizard's "Retry geocode" /
+// "Edit address" actions in Task 13.
+async function handleGeocodeSingle(req: Request, sb: SupabaseClient): Promise<Response> {
+  let body: { recipient_id?: string; address?: string | null; city?: string | null; state?: string | null; zip?: string | null };
+  try { body = await req.json(); } catch { return jsonResponse({ error: 'invalid_json' }, 400); }
+  if (!body.recipient_id) return jsonResponse({ error: 'recipient_id_required' }, 400);
+
+  const { data: r, error: rErr } = await sb.from('recipients')
+    .select('id, company, campaign_id')
+    .eq('id', body.recipient_id)
+    .maybeSingle();
+  if (rErr) return jsonResponse({ error: 'database_error', detail: rErr.message }, 500);
+  if (!r) return jsonResponse({ error: 'recipient_not_found' }, 404);
+
+  const address = body.address ?? null;
+  const city = body.city ?? null;
+  const state = body.state ?? null;
+  const zip = body.zip ?? null;
+
+  const [g] = await geocodeRows(sb, [{ address, city, state, zip }]);
+  const areas = await loadAreas(sb);
+  const matched = g ? findAreaIn(areas, g.lon, g.lat) : null;
+  const bucket: Bucket = bucketFor({
+    hasCompany: !!r.company,
+    hasAddress: !!address,
+    aiConfidence: 'high',
+    geocodeOk: !!g,
+    areaMatch: matched,
+  });
+  const { error: upErr } = await sb.from('recipients').update({
+    address: address || null, city: city || null, state: state || null, zip: zip || null,
+    lat: g?.lat ?? null, lon: g?.lon ?? null,
+    bakery_id: matched ? matched.bakery_id : null,
+    assignment_status: bucket,
+  }).eq('id', body.recipient_id);
+  if (upErr) return jsonResponse({ error: 'database_error', detail: upErr.message }, 500);
+
+  return jsonResponse({
+    assignment_status: bucket,
+    lat: g?.lat ?? null,
+    lon: g?.lon ?? null,
+    bakery_id: matched?.bakery_id ?? null,
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders() });
   if (req.method !== 'POST') return jsonResponse({ error: 'method_not_allowed' }, 405);
 
+  const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+
+  // Sub-route: per-row re-geocode. Different request shape, so dispatch
+  // before we try to parse the bulk-ingest body.
+  if (new URL(req.url).pathname.endsWith('/geocode-single')) {
+    return await handleGeocodeSingle(req, sb);
+  }
+
   let body: IngestRequest;
   try { body = await req.json(); } catch { return jsonResponse({ error: 'invalid_json' }, 400); }
   if (!body.campaign_id || !body.file_b64 || !body.file_type) return jsonResponse({ error: 'missing_required_fields' }, 400);
-
-  const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
   const { data: campaign, error: campaignErr } = await sb.from('campaigns').select('id').eq('id', body.campaign_id).maybeSingle();
   if (campaignErr) return jsonResponse({ error: 'database_error', detail: campaignErr.message }, 500);
@@ -112,22 +187,26 @@ Deno.serve(async (req) => {
     address: n.address, city: n.city, state: n.state, zip: n.zip,
   })));
 
-  // 4. Bucket + collect inserts using the normalized + geocoded values.
+  // 4. Load bakery delivery areas once for point-in-polygon checks.
+  const areas = await loadAreas(sb);
+
+  // 5. Bucket + collect inserts using normalized + geocoded + area-matched values.
   const totals = { assigned: 0, needs_review: 0, flagged_out_of_area: 0, geocode_failed: 0 };
   const insertRows: Array<Record<string, unknown>> = [];
   for (let i = 0; i < normalized.length; i++) {
     const n = normalized[i];
     const g = geocodes[i];
+    const matched = g ? findAreaIn(areas, g.lon, g.lat) : null;
     const bucket: Bucket = bucketFor({
       hasCompany: !!n.company, hasAddress: !!n.address,
       aiConfidence: n.confidence,
       geocodeOk: !!g,
-      areaMatch: null,      // Task 9 will set this
+      areaMatch: matched,
     });
     totals[bucket]++;
     insertRows.push({
       campaign_id: body.campaign_id,
-      bakery_id: null,
+      bakery_id: matched ? matched.bakery_id : null,
       company: n.company || '(unknown)',
       contact_name: n.contact_name,
       phone: n.phone, email: n.email,
@@ -158,5 +237,21 @@ Deno.serve(async (req) => {
     if (error) return jsonResponse({ error: 'database_error', detail: error.message }, 500);
   }
 
-  return jsonResponse({ totals, sample_issues: [], mapping_used: mapping });
+  // 6. Sample up to 10 problem rows (any non-'assigned' status) for the
+  //    wizard's review-step preview. Re-query so we get database-assigned ids.
+  const sample_issues: Array<{ recipient_id: string; reason: string; raw: Record<string, string> }> = [];
+  const { data: insertedRows } = await sb.from('recipients')
+    .select('id, company, address, assignment_status')
+    .eq('campaign_id', body.campaign_id)
+    .neq('assignment_status', 'assigned')
+    .limit(10);
+  for (const r of insertedRows || []) {
+    sample_issues.push({
+      recipient_id: r.id,
+      reason: r.assignment_status,
+      raw: { company: r.company, address: r.address },
+    });
+  }
+
+  return jsonResponse({ totals, sample_issues, mapping_used: mapping });
 });
