@@ -2,21 +2,13 @@
 const SUPABASE_URL = window.__SUPABASE_URL__ || 'https://vqmjevtthpedzdfotaie.supabase.co';
 const SUPABASE_ANON_KEY = window.__SUPABASE_ANON_KEY__ || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxbWpldnR0aHBlZHpkZm90YWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzODIwODcsImV4cCI6MjA5MTk1ODA4N30.mct_oZri4PLJVkrhZC3uzkq0qMYZExM7Y_30mQP30S8';
 
-// Resolved in tenant.js (runs first). When present, every Supabase request
-// carries `x-tenant-token: <token>` as a header; RLS policies in migration
-// 004_rls.sql consult this header to scope rows to the tenant.
-const _tenantToken = window.__TENANT_TOKEN__ || null;
-
 const _supabaseReady = SUPABASE_URL !== 'PLACEHOLDER_NOT_SET' && typeof supabase !== 'undefined';
-const _tenantClientOpts = _tenantToken
-  ? { global: { headers: { 'x-tenant-token': _tenantToken } } }
-  : undefined;
-const sb = _supabaseReady
-  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, _tenantClientOpts)
-  : null;
+const sb = _supabaseReady ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-// Build an additional tenant-scoped client on demand (e.g. to temporarily act
-// as a different tenant in tests). Normal app code should just use `sb`.
+// Forward-compat: lets a future plan temporarily act as a specific tenant by
+// attaching the x-tenant-token header. Plan 2 does not use this — RLS is
+// permissive — but keeping the factory means the re-enable-auth migration
+// has a drop-in path.
 function makeTenantClient(token) {
   if (!_supabaseReady || !token) return null;
   return supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -24,23 +16,6 @@ function makeTenantClient(token) {
   });
 }
 window.makeTenantClient = makeTenantClient;
-
-// If a token is present, probe the server to confirm it's still valid. If it
-// was revoked/deleted the RLS helpers return NULL and the app would otherwise
-// render as an empty shell with no obvious way to sign out. On rejection,
-// clear the stashed token and bounce back to the login gate.
-if (sb && _tenantToken) {
-  sb.rpc('tenant_is_authenticated').then(({ data, error }) => {
-    if (error) {
-      console.warn('Tenant auth probe failed (keeping token for now):', error.message);
-      return;
-    }
-    if (data === false && typeof window.tenantSignOut === 'function') {
-      console.warn('Tenant token was rejected by the server; signing out.');
-      window.tenantSignOut();
-    }
-  });
-}
 
 // ===== PERSISTENCE LAYER =====
 const DB = {
