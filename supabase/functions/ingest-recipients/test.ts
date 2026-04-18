@@ -1,0 +1,101 @@
+// Run with: deno test --allow-net --allow-env supabase/functions/ingest-recipients/test.ts
+// Reads SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY from process env (load from .env via dotenv).
+import { assert, assertEquals } from 'std/assert/mod.ts';
+import { createClient } from '@supabase/supabase-js';
+
+const url = Deno.env.get('SUPABASE_URL')!;
+const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+// Supabase functions live at <ref>.functions.supabase.co. Custom domains won't
+// match this swap; set FUNCTION_URL in .env to override.
+const fnUrl = Deno.env.get('FUNCTION_URL')
+  ?? url.replace('.supabase.co', '.functions.supabase.co') + '/ingest-recipients';
+
+const sb = createClient(url, key);
+
+function b64(text: string): string {
+  return btoa(text);
+}
+
+Deno.test('ingest skeleton: 3-row CSV inserts as geocode_failed (no geocode yet)', async () => {
+  let cust, camp;
+  try {
+    ({ data: cust } = await sb.from('customers').insert({ name: 'TEST_cust_' + Math.random(), access_token: crypto.randomUUID() }).select('*').single());
+    ({ data: camp } = await sb.from('campaigns').insert({ customer_id: cust!.id, name: 'TEST_camp', status: 'draft' }).select('*').single());
+
+    const csv = 'Company,Address\nAcme,123 Main St\nWidgets,45 Oak Ave\nGears,789 Pine Rd\n';
+    const res = await fetch(fnUrl, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaign_id: camp!.id,
+        file_b64: b64(csv),
+        file_type: 'csv',
+        column_mapping: { Company: 'company', Address: 'address' },
+      }),
+    });
+    const json = await res.json();
+
+    assertEquals(res.status, 200);
+    // With hasCompany=true, hasAddress=true, geocodeOk=false → 'geocode_failed'.
+    assertEquals(json.totals.geocode_failed, 3);
+    const { data: recips } = await sb.from('recipients').select('*').eq('campaign_id', camp!.id);
+    assertEquals(recips!.length, 3);
+    assert(recips!.every(r => r.legacy_id && r.legacy_id.length === 64));
+  } finally {
+    if (camp?.id) {
+      await sb.from('recipients').delete().eq('campaign_id', camp.id);
+      await sb.from('campaigns').delete().eq('id', camp.id);
+    }
+    if (cust?.id) await sb.from('customers').delete().eq('id', cust.id);
+  }
+});
+
+Deno.test('re-uploading the same file is idempotent (ON CONFLICT skips dupes)', async () => {
+  let cust, camp;
+  try {
+    ({ data: cust } = await sb.from('customers').insert({ name: 'TEST_cust_' + Math.random(), access_token: crypto.randomUUID() }).select('*').single());
+    ({ data: camp } = await sb.from('campaigns').insert({ customer_id: cust!.id, name: 'TEST_camp', status: 'draft' }).select('*').single());
+    const csv = 'Company,Address\nAcme,123 Main St\n';
+    const post = async () => {
+      const r = await fetch(fnUrl, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaign_id: camp!.id, file_b64: b64(csv), file_type: 'csv', column_mapping: { Company: 'company', Address: 'address' } }),
+      });
+      await r.json(); // consume body so Deno doesn't flag a resource leak
+    };
+    await post(); await post();
+    const { data: recips } = await sb.from('recipients').select('*').eq('campaign_id', camp!.id);
+    assertEquals(recips!.length, 1, 're-upload should not insert a second copy');
+  } finally {
+    if (camp?.id) {
+      await sb.from('recipients').delete().eq('campaign_id', camp.id);
+      await sb.from('campaigns').delete().eq('id', camp.id);
+    }
+    if (cust?.id) await sb.from('customers').delete().eq('id', cust.id);
+  }
+});
+
+Deno.test('within-batch duplicate (company,address) is deduped before upsert', async () => {
+  let cust, camp;
+  try {
+    ({ data: cust } = await sb.from('customers').insert({ name: 'TEST_cust_' + Math.random(), access_token: crypto.randomUUID() }).select('*').single());
+    ({ data: camp } = await sb.from('campaigns').insert({ customer_id: cust!.id, name: 'TEST_camp', status: 'draft' }).select('*').single());
+    const csv = 'Company,Address\nAcme,123 Main St\nAcme,123 Main St\nWidgets,45 Oak Ave\n';
+    const res = await fetch(fnUrl, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaign_id: camp!.id, file_b64: btoa(csv), file_type: 'csv', column_mapping: { Company: 'company', Address: 'address' } }),
+    });
+    await res.json(); // consume body so Deno doesn't flag a resource leak
+    assertEquals(res.status, 200);
+    const { data: recips } = await sb.from('recipients').select('*').eq('campaign_id', camp!.id);
+    assertEquals(recips!.length, 2, 'Acme should appear once, Widgets once');
+  } finally {
+    if (camp?.id) {
+      await sb.from('recipients').delete().eq('campaign_id', camp.id);
+      await sb.from('campaigns').delete().eq('id', camp.id);
+    }
+    if (cust?.id) await sb.from('customers').delete().eq('id', cust.id);
+  }
+});
