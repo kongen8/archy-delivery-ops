@@ -93,7 +93,11 @@
     for (const area of areas) {
       const bakery = bakeryById.get(area.bakery_id);
       if (!bakery) continue;
-      const key = area.name.replace(/ \(migrated\)$/, '');
+      // Plan 2 polygons save with name: null. Fall back to a stable-per-area
+      // label so the region shows up in the legacy shape; keep the legacy
+      // `(migrated)` suffix-strip for Archy-era named areas.
+      const rawName = area.name || (bakery.name + ' · area ' + area.id.slice(0, 6));
+      const key = rawName.replace(/ \(migrated\)$/, '');
       const matchingRecips = recipients.filter(r => {
         if (r.bakery_id !== bakery.id) return false;
         if (!Number.isFinite(r.lat) || !Number.isFinite(r.lon)) return false;
@@ -106,7 +110,7 @@
       REGIONS[key] = {
         name: key,
         bakery: bakery.name,
-        color: colorForArea(area.name),
+        color: colorForArea(rawName),
         _bakeryId: bakery.id,
         _campaignId: ctx.campaign.id,
         _deliveryAreaId: area.id,
