@@ -40,6 +40,7 @@
   }
 
   // No profile → render the landing picker into #root and short-circuit.
+  installGlobalActions();
   window.__PROFILE_GATE_ACTIVE__ = true;
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', renderLandingPicker);
@@ -78,8 +79,8 @@
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch (e) {}
   }
 
-  function expose(p) {
-    window.__CURRENT_PROFILE__ = p;
+  // Always defined — landing picker runs before expose() and still needs these.
+  function installGlobalActions() {
     window.switchProfile = function (next) {
       persist(next);
       const h = '#/' + next.type + (next.id ? '/' + next.id : '');
@@ -94,6 +95,11 @@
       try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
       window.location.replace(window.location.pathname);
     };
+  }
+
+  function expose(p) {
+    window.__CURRENT_PROFILE__ = p;
+    installGlobalActions();
   }
 
   async function renderLandingPicker() {
