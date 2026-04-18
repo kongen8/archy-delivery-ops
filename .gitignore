@@ -2,3 +2,7 @@
 .env.local
 node_modules/
 .DS_Store
+
+# Cursor workspace — keep the project-scoped MCP config only.
+.cursor/*
+!.cursor/mcp.json
