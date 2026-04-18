@@ -1,0 +1,8 @@
+{
+  "imports": {
+    "std/": "https://deno.land/std@0.224.0/",
+    "xlsx": "https://esm.sh/xlsx@0.18.5",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.0",
+    "@turf/boolean-point-in-polygon": "https://esm.sh/@turf/boolean-point-in-polygon@7.1.0"
+  }
+}

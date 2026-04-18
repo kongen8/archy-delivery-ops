@@ -18,6 +18,9 @@
   <script src="https://unpkg.com/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.js"></script>
   <script src="https://unpkg.com/@turf/turf@7/turf.min.js"></script>
 
+  <!-- SheetJS for in-browser CSV/XLSX preview (Plan 3) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <!-- Third-party stylesheets.
        NOTE: we load mapbox-gl.css for its `.mapboxgl-ctrl*` rules because
        mapbox-gl-draw wraps its buttons in `.mapboxgl-ctrl` (not MapLibre's
@@ -67,6 +70,13 @@
   <!-- Reassignment helper (Plan 2 follow-up) -->
   <script src="./src/admin/reassign.js"></script>
 
+  <!-- Upload helpers (Plan 3) -->
+  <script src="./src/upload/parse.js"></script>
+  <script src="./src/upload/columns.js"></script>
+
+  <!-- Customer-side data layer (Plan 3) -->
+  <script src="./src/db/customer.js"></script>
+
   <!-- Mapbox public token (browser-safe pk.*) -->
   <script src="./src/config/mapbox.js"></script>
 
@@ -109,6 +119,7 @@
   <script type="text/babel" src="./src/components/AdminView.jsx"></script>
   <script type="text/babel" src="./src/components/BakeryHomeView.jsx"></script>
   <script type="text/babel" src="./src/components/CustomerHomeView.jsx"></script>
+  <script type="text/babel" src="./src/components/UploadWizard.jsx"></script>
 
   <!-- Route-aware app shell (depends on every component above) -->
   <script type="text/babel" src="./src/components/App.jsx"></script>

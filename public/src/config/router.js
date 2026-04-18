@@ -11,6 +11,9 @@
     { pattern: /^#\/admin\/customer\/([a-f0-9-]{36})$/i, build: m => ({ view: 'admin', page: 'customer-editor', id: m[1], isNew: false }) },
     { pattern: /^#\/admin$/i, build: () => ({ view: 'admin', page: 'list', id: null }) },
     { pattern: /^#\/bakery\/([a-f0-9-]{36})$/i, build: m => ({ view: 'bakery', page: 'home', id: m[1] }) },
+    // Upload-wizard route — campaignId can be the literal "new" (draft hasn't
+    // been created yet) or a UUID (resume an existing draft).
+    { pattern: /^#\/customer\/([a-f0-9-]{36})\/upload\/(new|[a-f0-9-]{36})$/i, build: m => ({ view: 'customer', page: 'upload', customerId: m[1], campaignId: m[2] }) },
     { pattern: /^#\/customer\/([a-f0-9-]{36})$/i, build: m => ({ view: 'customer', page: 'home', id: m[1] }) },
   ];
 
