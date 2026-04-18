@@ -10,7 +10,9 @@ const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const fnUrl = Deno.env.get('FUNCTION_URL')
   ?? url.replace('.supabase.co', '.functions.supabase.co') + '/ingest-recipients';
 
-const sb = createClient(url, key);
+// Disable auto-refresh + persistence so supabase-js doesn't leave a setTimeout
+// running across tests (Deno's leak sanitizer catches it otherwise).
+const sb = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
 
 function b64(text: string): string {
   return btoa(text);
@@ -91,6 +93,33 @@ Deno.test('within-batch duplicate (company,address) is deduped before upsert', a
     assertEquals(res.status, 200);
     const { data: recips } = await sb.from('recipients').select('*').eq('campaign_id', camp!.id);
     assertEquals(recips!.length, 2, 'Acme should appear once, Widgets once');
+  } finally {
+    if (camp?.id) {
+      await sb.from('recipients').delete().eq('campaign_id', camp.id);
+      await sb.from('campaigns').delete().eq('id', camp.id);
+    }
+    if (cust?.id) await sb.from('customers').delete().eq('id', cust.id);
+  }
+});
+
+Deno.test('ai mapping: omitting column_mapping triggers AI (or fallback) and still inserts', async () => {
+  let cust, camp;
+  try {
+    ({ data: cust } = await sb.from('customers').insert({ name: 'TEST_cust_' + Math.random(), access_token: crypto.randomUUID() }).select('*').single());
+    ({ data: camp } = await sb.from('campaigns').insert({ customer_id: cust!.id, name: 'TEST_camp', status: 'draft' }).select('*').single());
+    // Headers chosen so the deterministic fallback covers them; AI should also handle them.
+    const csv = 'Business Name,Street Address\nAcme,123 Main St\nWidgets,45 Oak Ave\n';
+    const res = await fetch(fnUrl, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaign_id: camp!.id, file_b64: btoa(csv), file_type: 'csv' }),
+    });
+    const json = await res.json();
+    assertEquals(res.status, 200);
+    assertEquals(json.mapping_used['Business Name'], 'company');
+    assertEquals(json.mapping_used['Street Address'], 'address');
+    const { data: recips } = await sb.from('recipients').select('*').eq('campaign_id', camp!.id);
+    assertEquals(recips!.length, 2);
   } finally {
     if (camp?.id) {
       await sb.from('recipients').delete().eq('campaign_id', camp.id);

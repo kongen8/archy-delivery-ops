@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { parseFile } from './parse.ts';
 import { legacyId } from './legacy_id.ts';
 import { bucketFor, Bucket } from './bucket.ts';
+import { aiSuggestMapping, fallbackMapping } from './ai.ts';
 
 interface IngestRequest {
   campaign_id: string;
@@ -55,7 +56,15 @@ Deno.serve(async (req) => {
   try { parsed = parseFile(body.file_b64, body.file_type); }
   catch (e) { return jsonResponse({ error: 'parse_failed', detail: (e as Error).message }, 400); }
 
-  const mapping = body.column_mapping || {};
+  let mapping: Record<string, string | null> = body.column_mapping ?? {};
+  if (!body.column_mapping) {
+    if (body.ai_disabled || !Deno.env.get('OPENAI_API_KEY')) {
+      mapping = fallbackMapping(parsed.headers).mapping;
+    } else {
+      try { mapping = (await aiSuggestMapping(parsed.headers, parsed.rows)).mapping; }
+      catch (_) { mapping = fallbackMapping(parsed.headers).mapping; }
+    }
+  }
   const totals = { assigned: 0, needs_review: 0, flagged_out_of_area: 0, geocode_failed: 0 };
   const insertRows: Array<Record<string, unknown>> = [];
 
