@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"/><title>Plan 5 mockup · Wizard Step 4 (Designs)</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;color:#111827;background:#f3f4f6}
+  a.back{display:inline-block;margin:18px 24px;color:#6b7280;text-decoration:none;font-size:13px}
+  .wizard-shell{display:flex;height:calc(100vh - 60px);background:#fff;margin:0 24px 24px;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb}
+  /* rail */
+  .wizard-rail{width:200px;background:#f9fafb;border-right:1px solid #e5e7eb;padding:20px 16px}
+  .wizard-rail-header{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-bottom:18px}
+  .step{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13px;color:#9ca3af}
+  .step.done{color:#10b981}
+  .step.active{color:#111;font-weight:600}
+  .step .num{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#e5e7eb;color:#6b7280;font-size:11px;font-weight:600}
+  .step.done .num{background:#10b981;color:#fff}
+  .step.active .num{background:#2563eb;color:#fff}
+  /* main */
+  .main{flex:1;display:flex;flex-direction:column;overflow:auto}
+  .header{display:flex;justify-content:space-between;align-items:center;padding:18px 28px;border-bottom:1px solid #f3f4f6}
+  .header h1{font-size:18px;font-weight:700;margin:0}
+  .btn-ghost{background:#fff;color:#374151;border:1px solid #e5e7eb;padding:7px 12px;border-radius:6px;font-size:13px;cursor:pointer;text-decoration:none}
+  .btn-primary{background:#111;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-weight:500;font-size:13px;cursor:pointer}
+  .step-body{padding:24px 28px;flex:1;display:flex;flex-direction:column;gap:24px;max-width:1100px}
+  .step-body h2{font-size:16px;font-weight:600;margin:0}
+  .step-body .subtle{margin:0;color:#6b7280;font-size:13px}
+  /* default card */
+  .design-card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:18px;display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+  .design-card .image-slot{aspect-ratio:1/1;background:#fff;border:1px dashed #d1d5db;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+  .image-slot img{max-width:100%;max-height:100%;border-radius:9999px}
+  .image-slot .empty{font-size:13px;color:#9ca3af;text-align:center;padding:12px}
+  .image-tabs{display:flex;gap:0;border-bottom:1px solid #e5e7eb;margin-bottom:8px}
+  .image-tabs button{background:none;border:none;border-bottom:2px solid transparent;padding:6px 12px;font-size:12px;font-weight:600;color:#6b7280;cursor:pointer;font-family:inherit}
+  .image-tabs button.active{color:#111;border-bottom-color:#111}
+  .image-tabs .helper{margin-left:auto;font-size:11px;color:#9ca3af;align-self:center}
+  .design-fields .field{margin-bottom:14px}
+  .design-fields label{display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+  .design-fields input,.design-fields textarea{width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit}
+  .design-fields textarea{min-height:64px;resize:vertical}
+  .design-fields .file{display:flex;gap:6px}
+  .design-fields .file input{flex:1}
+  /* overrides section */
+  .overrides{border:1px solid #e5e7eb;border-radius:8px;background:#fff}
+  .overrides-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #f3f4f6}
+  .overrides-header h3{margin:0;font-size:14px;font-weight:600}
+  .overrides-header .meta{font-size:12px;color:#6b7280}
+  .search{margin:12px 16px;width:calc(100% - 32px);padding:7px 12px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;font-family:inherit}
+  .override-row{display:flex;gap:14px;align-items:center;padding:10px 16px;border-top:1px solid #f3f4f6}
+  .override-row:first-of-type{border-top:1px solid #f3f4f6}
+  .override-thumb{width:48px;height:48px;border-radius:9999px;background:#f3f4f6;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:18px;color:#9ca3af}
+  .override-thumb img{width:100%;height:100%;object-fit:cover}
+  .override-main{flex:1;min-width:0}
+  .override-main .who{font-size:13px;font-weight:600;color:#111}
+  .override-main .what{font-size:12px;color:#6b7280;margin-top:2px}
+  .override-actions button{margin-left:6px;background:#fff;color:#374151;border:1px solid #e5e7eb;padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer}
+  .empty-state{padding:28px;text-align:center;color:#9ca3af;font-size:13px;background:#fafafa;border-top:1px solid #f3f4f6}
+  .footer{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding-top:14px;border-top:1px solid #f3f4f6;margin-top:auto;padding:14px 28px}
+  .footer .summary{flex:1;font-size:12px;color:#6b7280}
+  /* signoff field */
+  .signoff{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;display:flex;align-items:center;gap:14px}
+  .signoff label{font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em}
+  .signoff input{flex:1;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit}
+  .signoff .hint{font-size:11px;color:#9ca3af;max-width:200px}
+</style></head><body>
+<a class="back" href="./plan5-index.html">‹ Back to Plan 5 mockups</a>
+<div class="wizard-shell">
+  <aside class="wizard-rail">
+    <div class="wizard-rail-header">Upload</div>
+    <div class="step done"><span class="num">✓</span><span>File</span></div>
+    <div class="step done"><span class="num">✓</span><span>Columns</span></div>
+    <div class="step done"><span class="num">✓</span><span>Review</span></div>
+    <div class="step active"><span class="num">4</span><span>Designs</span></div>
+  </aside>
+  <main class="main">
+    <header class="header">
+      <h1>Archy × Daymaker Q3 2026</h1>
+      <a class="btn-ghost" href="#">Cancel</a>
+    </header>
+
+    <div class="step-body">
+      <div>
+        <h2>Set the cake design</h2>
+        <p class="subtle">Every cake starts from the campaign default. Add per-recipient overrides for special cases (a birthday, a different logo, a custom message).</p>
+      </div>
+
+      <!-- Sign-off -->
+      <div class="signoff">
+        <label>Sign-off line</label>
+        <input value="with love from Archy"/>
+        <div class="hint">Prints at the bottom of every box card. Defaults to your customer name.</div>
+      </div>
+
+      <!-- Default card -->
+      <div>
+        <h3 style="font-size:13px;font-weight:600;margin:0 0 10px;color:#374151;text-transform:uppercase;letter-spacing:.04em">Campaign default</h3>
+        <div class="design-card">
+          <div>
+            <div class="image-tabs">
+              <button class="active">Upload</button>
+              <button>Paste URL</button>
+              <span class="helper">7.5" round, auto-cropped</span>
+            </div>
+            <div class="image-slot">
+              <img src="https://i.imgur.com/0JxQwS5.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+              <div class="empty" style="display:none">
+                <div style="font-size:24px;margin-bottom:6px">⊕</div>
+                <div>Drop a PNG/JPG here<br/>or click to choose</div>
+              </div>
+            </div>
+            <p style="font-size:11px;color:#9ca3af;margin:8px 0 0">Stored in <code style="background:#f3f4f6;padding:1px 5px;border-radius:3px">cake-prints/&lt;campaign&gt;/default.png</code></p>
+          </div>
+          <div class="design-fields">
+            <div class="field">
+              <label>Message printed on the box card</label>
+              <textarea placeholder="e.g. Thanks for partnering with Archy this year!">Thanks for being part of the Archy family — happy holidays!</textarea>
+            </div>
+            <div class="field">
+              <label>Image source</label>
+              <div class="file">
+                <input value="https://archy.com/assets/holiday-2026.png"/>
+                <button class="btn-ghost">Choose file…</button>
+              </div>
+              <div style="font-size:11px;color:#9ca3af;margin-top:4px">PNG or JPG, any size. We center-crop to 7.5" round at print time.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overrides -->
+      <div>
+        <h3 style="font-size:13px;font-weight:600;margin:0 0 10px;color:#374151;text-transform:uppercase;letter-spacing:.04em;display:flex;justify-content:space-between;align-items:center">
+          <span>Per-recipient overrides · 2 of 124 recipients</span>
+          <button class="btn-primary" style="font-size:12px;padding:6px 12px">+ Add override</button>
+        </h3>
+        <div class="overrides">
+          <input class="search" placeholder="Search recipients by company, contact, or address…"/>
+          <div class="override-row">
+            <div class="override-thumb"><img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=200&h=200&fit=crop" alt=""/></div>
+            <div class="override-main">
+              <div class="who">Lee Family Dental · Dr. Lee</div>
+              <div class="what">Custom message + custom image · 1234 Oak St, San Francisco</div>
+            </div>
+            <div class="override-actions">
+              <button>Edit</button>
+              <button>Remove</button>
+            </div>
+          </div>
+          <div class="override-row">
+            <div class="override-thumb">📷</div>
+            <div class="override-main">
+              <div class="who">Stanford Pediatric Group</div>
+              <div class="what">Custom message only · 580 Welch Rd, Palo Alto</div>
+            </div>
+            <div class="override-actions">
+              <button>Edit</button>
+              <button>Remove</button>
+            </div>
+          </div>
+          <div class="empty-state">122 more recipients use the campaign default. <a href="#" style="color:#2563eb">Add another override →</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <button class="btn-ghost">‹ Back to review</button>
+      <div class="summary">122 cakes use the default design · 2 cakes use overrides</div>
+      <button class="btn-primary">Finalize campaign</button>
+    </div>
+  </main>
+</div>
+</body></html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"/><title>Plan 5 mockup · Bakery Production tab</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;color:#111827;background:#f3f4f6}
+  a.back{display:inline-block;margin:18px 24px;color:#6b7280;text-decoration:none;font-size:13px}
+  .ops{margin:0 24px 24px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}
+  .ops-header{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid #f3f4f6}
+  .ops-header h1{margin:0;font-size:18px;font-weight:700}
+  .ops-header .meta{font-size:12px;color:#6b7280;margin-top:2px}
+  .tabs{display:flex;gap:0;border-bottom:1px solid #e5e7eb;padding:0 24px}
+  .tab{background:none;border:none;border-bottom:2px solid transparent;padding:12px 18px;font-size:13px;color:#6b7280;cursor:pointer;font-family:inherit;font-weight:500}
+  .tab.active{color:#111;font-weight:600;border-bottom-color:#111}
+  .tab .pill{display:inline-block;background:#f3f4f6;color:#374151;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:6px}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;background:#f9fafb;border-bottom:1px solid #f3f4f6;gap:14px;flex-wrap:wrap}
+  .toolbar .filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .filter{background:#fff;border:1px solid #e5e7eb;color:#374151;padding:5px 11px;border-radius:999px;font-size:12px;cursor:pointer}
+  .filter.active{background:#111;color:#fff;border-color:#111}
+  .toolbar .actions{display:flex;gap:8px}
+  .btn-primary{background:#111;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-weight:500;font-size:13px;cursor:pointer}
+  .btn-ghost{background:#fff;color:#374151;border:1px solid #e5e7eb;padding:7px 12px;border-radius:6px;font-size:13px;cursor:pointer}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;padding:20px 24px}
+  .cake-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;transition:transform .15s,box-shadow .15s}
+  .cake-card:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.06)}
+  .cake-image{aspect-ratio:1/1;background:#f3f4f6;display:flex;align-items:center;justify-content:center;position:relative;padding:24px}
+  .cake-image img{width:100%;height:100%;border-radius:9999px;object-fit:cover}
+  .cake-image .placeholder{font-size:34px;color:#cbd5e1}
+  .badge{position:absolute;top:8px;left:8px;background:#fef2f2;color:#991b1b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:999px}
+  .badge.warn{background:#fef3c7;color:#92400e}
+  .cake-body{padding:14px;display:flex;flex-direction:column;gap:6px;border-top:1px solid #f3f4f6}
+  .cake-co{font-size:14px;font-weight:600;color:#111}
+  .cake-addr{font-size:11px;color:#9ca3af}
+  .cake-msg{font-size:12px;color:#374151;font-style:italic;background:#f9fafb;border-left:3px solid #cbd5e1;padding:6px 8px;border-radius:0 4px 4px 0;margin-top:4px}
+  .cake-msg.missing{color:#9ca3af;font-style:normal;border-color:#fecaca}
+  .cake-source{font-size:10px;color:#9ca3af;margin-top:6px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .cake-source.override{color:#7c3aed}
+</style></head><body>
+<a class="back" href="./plan5-index.html">‹ Back to Plan 5 mockups</a>
+<div class="ops">
+  <div class="ops-header">
+    <div>
+      <h1>Boho Petite · OpsView</h1>
+      <div class="meta">Archy × Daymaker Q3 2026 · 124 deliveries · Day 1 of 4</div>
+    </div>
+    <div style="display:flex;gap:8px"><button class="btn-ghost">Settings</button><button class="btn-ghost">Profile · Bakery ▾</button></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab">Routes <span class="pill">4</span></button>
+    <button class="tab">Photos <span class="pill">12</span></button>
+    <button class="tab active">Production <span class="pill">124</span></button>
+  </div>
+
+  <div class="toolbar">
+    <div class="filters">
+      <button class="filter active">All · 124</button>
+      <button class="filter">Day 1 · 31</button>
+      <button class="filter">Missing image · 2</button>
+      <button class="filter">Missing message · 0</button>
+    </div>
+    <div class="actions">
+      <button class="btn-ghost">↓ Download all edible prints (.zip)</button>
+      <button class="btn-primary">🖨 Print all box cards</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- using campaign default -->
+    <div class="cake-card">
+      <div class="cake-image"><img src="https://i.imgur.com/0JxQwS5.png" alt=""/></div>
+      <div class="cake-body">
+        <div class="cake-co">Acme Dental Group</div>
+        <div class="cake-addr">330 Main St · San Francisco</div>
+        <div class="cake-msg">Thanks for being part of the Archy family — happy holidays!</div>
+        <div class="cake-source">Default · Day 1</div>
+      </div>
+    </div>
+
+    <!-- override w/ custom image + message -->
+    <div class="cake-card">
+      <div class="cake-image">
+        <span class="badge warn">Override</span>
+        <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&h=400&fit=crop" alt=""/>
+      </div>
+      <div class="cake-body">
+        <div class="cake-co">Lee Family Dental</div>
+        <div class="cake-addr">1234 Oak St · San Francisco</div>
+        <div class="cake-msg">Happy birthday Dr. Lee! From the whole Archy team 🎂</div>
+        <div class="cake-source override">Override · Day 1</div>
+      </div>
+    </div>
+
+    <!-- default w/ different image -->
+    <div class="cake-card">
+      <div class="cake-image"><img src="https://i.imgur.com/0JxQwS5.png" alt=""/></div>
+      <div class="cake-body">
+        <div class="cake-co">Pacific Heights Pediatrics</div>
+        <div class="cake-addr">2100 Webster St · San Francisco</div>
+        <div class="cake-msg">Thanks for being part of the Archy family — happy holidays!</div>
+        <div class="cake-source">Default · Day 1</div>
+      </div>
+    </div>
+
+    <!-- missing image, has default message -->
+    <div class="cake-card">
+      <div class="cake-image">
+        <span class="badge">Missing image</span>
+        <span class="placeholder">🖼</span>
+      </div>
+      <div class="cake-body">
+        <div class="cake-co">Sunset Dermatology</div>
+        <div class="cake-addr">1801 Irving St · San Francisco</div>
+        <div class="cake-msg">Thanks for being part of the Archy family — happy holidays!</div>
+        <div class="cake-source">Default · Day 1</div>
+      </div>
+    </div>
+
+    <!-- override message only, default image -->
+    <div class="cake-card">
+      <div class="cake-image">
+        <span class="badge warn">Msg override</span>
+        <img src="https://i.imgur.com/0JxQwS5.png" alt=""/>
+      </div>
+      <div class="cake-body">
+        <div class="cake-co">Stanford Pediatric Group</div>
+        <div class="cake-addr">580 Welch Rd · Palo Alto</div>
+        <div class="cake-msg">For the team that delivered baby Stanford last week — congrats!</div>
+        <div class="cake-source override">Partial override · Day 1</div>
+      </div>
+    </div>
+
+    <div class="cake-card">
+      <div class="cake-image"><img src="https://i.imgur.com/0JxQwS5.png" alt=""/></div>
+      <div class="cake-body">
+        <div class="cake-co">Castro Vision Center</div>
+        <div class="cake-addr">2255 Market St · San Francisco</div>
+        <div class="cake-msg">Thanks for being part of the Archy family — happy holidays!</div>
+        <div class="cake-source">Default · Day 1</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

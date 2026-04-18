@@ -101,8 +101,12 @@
       const matchingRecips = recipients.filter(r => {
         if (r.bakery_id !== bakery.id) return false;
         if (!Number.isFinite(r.lat) || !Number.isFinite(r.lon)) return false;
+        // Legacy Archy regions migrated with both a named area and a
+        // legacy_region tag on each recipient -- trust the tag in that case.
+        // Plan 2 admin-drawn areas have name=null, so fall back to polygon
+        // containment regardless of any legacy tag the recipient carries.
         const tag = r.customizations && r.customizations.legacy_region;
-        if (tag) return tag === key;
+        if (area.name && tag) return tag === key;
         return pointInGeometry(r.lon, r.lat, area.geometry);
       });
       if (!matchingRecips.length) continue;
