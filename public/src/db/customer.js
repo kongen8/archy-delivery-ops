@@ -53,6 +53,56 @@ const Customer = {
     if (!res.ok) throw new Error('ingest failed: ' + res.status + ' ' + await res.text());
     return await res.json();
   },
+
+  // Per-row "Accept" — used when the customer has confirmed (or edited) the
+  // displayed values. Always flips status to 'assigned' regardless of what
+  // bucket the row was in. The edge function's geocode-single sub-route
+  // handles the cases that need re-geocoding (see retryGeocode below).
+  async acceptRecipient(id, fields) {
+    if (!sb) throw new Error('sb not ready');
+    const update = {
+      assignment_status: 'assigned',
+      company: fields.company ?? null,
+      contact_name: fields.contact_name ?? null,
+      phone: fields.phone ?? null,
+      email: fields.email ?? null,
+      address: fields.address ?? null,
+      city: fields.city ?? null,
+      state: fields.state ?? null,
+      zip: fields.zip ?? null,
+    };
+    const { error } = await sb.from('recipients').update(update).eq('id', id);
+    if (error) throw error;
+  },
+
+  // "Skip" stamps a flag in the JSONB customizations blob rather than
+  // deleting the row, so the audit trail survives. Bakery views filter out
+  // skipped rows in Plan 4; for now they're just hidden from totals by the
+  // wizard's bucket counts via the assignment_status (we leave it where it
+  // is so customers can un-skip later if they reopen the campaign).
+  async skipRecipient(id) {
+    if (!sb) throw new Error('sb not ready');
+    const { data: r, error: rErr } = await sb.from('recipients').select('customizations').eq('id', id).single();
+    if (rErr) throw rErr;
+    const next = { ...(r?.customizations || {}), skipped: true };
+    const { error } = await sb.from('recipients').update({ customizations: next }).eq('id', id);
+    if (error) throw error;
+  },
+
+  // "Edit address" / "Edit & retry" — routes through the edge function so
+  // the new address gets re-geocoded + re-area-matched + re-bucketed in one
+  // round trip. Returns the new {assignment_status, lat, lon, bakery_id}.
+  async retryGeocode(recipient_id, fields) {
+    if (!sb) throw new Error('sb not ready');
+    const url = sb.supabaseUrl.replace('.supabase.co', '.functions.supabase.co') + '/ingest-recipients/geocode-single';
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + sb.supabaseKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipient_id, ...fields }),
+    });
+    if (!res.ok) throw new Error('retry geocode failed: ' + res.status + ' ' + await res.text());
+    return await res.json();
+  },
 };
 
 if (typeof window !== 'undefined') window.Customer = Customer;

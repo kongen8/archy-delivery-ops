@@ -118,6 +118,254 @@ function WizardStepRail({n, label, active, done}) {
   </div>;
 }
 
-// Stubs replaced in Tasks 11 + 12.
-function ColumnMappingStep() { return <div className="wizard-step">Step 2 placeholder (Task 11)</div>; }
-function ReviewStep() { return <div className="wizard-step">Step 3 placeholder (Task 12)</div>; }
+// ===== Step 2: column mapping =====
+// Initial guess uses the deterministic browser heuristic; the AI runs
+// server-side inside ingest-recipients (it sees the same headers + sample
+// rows). We present the heuristic guess up front so the table never starts
+// empty even if the customer's network is slow / AI is down.
+function ColumnMappingStep({parsed, onBack, onContinue, campaign, file}) {
+  const TARGETS = ['', 'company', 'contact_name', 'phone', 'email', 'address', 'city', 'state', 'zip'];
+  const initial = useMemo(() => suggestMapping(parsed.headers), [parsed.headers]);
+  const [mapping, setMapping] = useState(initial.mapping);
+  const confidence = initial.confidence;
+  const [working, setWorking] = useState(false);
+  const [err, setErr] = useState('');
+
+  function setHeaderTarget(header, target) {
+    setMapping(m => ({...m, [header]: target || null}));
+  }
+
+  async function continueToReview() {
+    setWorking(true); setErr('');
+    try {
+      const result = await Customer.ingestFile({
+        campaign_id: campaign.id,
+        file,
+        columnMapping: mapping,
+      });
+      onContinue(result);
+    } catch (e) { setErr(e.message || String(e)); }
+    setWorking(false);
+  }
+
+  // Surface duplicates so customers don't unintentionally map two columns to
+  // the same target (only one would actually be used by the edge function).
+  const targetCounts = Object.values(mapping).filter(Boolean).reduce((acc, t) => { acc[t] = (acc[t] || 0) + 1; return acc; }, {});
+  const hasDupe = Object.values(targetCounts).some(n => n > 1);
+  const hasCompany = Object.values(mapping).includes('company');
+  const hasAddress = Object.values(mapping).includes('address');
+  const canContinue = hasCompany && hasAddress && !hasDupe;
+
+  return <section className="wizard-step">
+    <h2>Confirm column mapping</h2>
+    <p className="wizard-step-sub">Pick a target field for each column from your file. Required: <code>company</code> + <code>address</code>.</p>
+    {err && <div className="wizard-err" style={{margin:0}}>{err}</div>}
+    {hasDupe && <div className="wizard-warn">Two columns map to the same target. Set duplicates to "—" before continuing.</div>}
+    <table className="wizard-mapping-table">
+      <thead><tr><th>Source column</th><th>Sample value</th><th>Heuristic</th><th>Maps to</th></tr></thead>
+      <tbody>
+        {parsed.headers.map((h, hi) => {
+          const sample = (parsed.rows[0] || [])[hi] || '';
+          return <tr key={h}>
+            <td><b>{h}</b></td>
+            <td className="wizard-sample">{sample}</td>
+            <td><span className={'wizard-conf ' + (confidence[h] || 'low')}>{confidence[h] || 'low'}</span></td>
+            <td>
+              <select value={mapping[h] || ''} onChange={e => setHeaderTarget(h, e.target.value)}>
+                {TARGETS.map(t => <option key={t} value={t}>{t || '—'}</option>)}
+              </select>
+            </td>
+          </tr>;
+        })}
+      </tbody>
+    </table>
+    <div className="wizard-footer">
+      <button className="btn-ghost" onClick={onBack} disabled={working}>‹ Back</button>
+      <button className="btn-primary" disabled={!canContinue || working} onClick={continueToReview}>
+        {working ? 'Ingesting…' : 'Continue'}
+      </button>
+    </div>
+  </section>;
+}
+
+// ===== Step 3: tabbed bucket review =====
+// Re-queries recipients on every action so counts stay live. Per-row
+// actions (accept/edit/skip/retry-geocode) live in RecipientRow below.
+function ReviewStep({campaign, customerId, onBack, ingestResult}) {
+  const [tab, setTab] = useState('needs_review');
+  const [recipients, setRecipients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+  const [finalizing, setFinalizing] = useState(false);
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    try { setRecipients(await Customer.listRecipients(campaign.id)); }
+    catch (e) { setErr(e.message); }
+    setLoading(false);
+  }, [campaign.id]);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  // Default tab to "needs_review" but jump to the first non-empty bucket if
+  // that one's empty, so customers aren't greeted by an empty state.
+  useEffect(() => {
+    if (recipients.length === 0) return;
+    const inCurrent = recipients.filter(r => r.assignment_status === tab).length;
+    if (inCurrent > 0) return;
+    const order = ['needs_review', 'flagged_out_of_area', 'geocode_failed', 'assigned'];
+    const next = order.find(b => recipients.some(r => r.assignment_status === b));
+    if (next) setTab(next);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipients.length]);
+
+  const counts = {
+    assigned: recipients.filter(r => r.assignment_status === 'assigned').length,
+    needs_review: recipients.filter(r => r.assignment_status === 'needs_review').length,
+    flagged_out_of_area: recipients.filter(r => r.assignment_status === 'flagged_out_of_area').length,
+    geocode_failed: recipients.filter(r => r.assignment_status === 'geocode_failed').length,
+  };
+  const inTab = recipients.filter(r => r.assignment_status === tab);
+  const stillProblematic = counts.needs_review + counts.flagged_out_of_area + counts.geocode_failed;
+
+  async function finalize() {
+    setFinalizing(true);
+    try {
+      await Customer.finalizeCampaign(campaign.id);
+      navigate('#/customer/' + customerId);
+    } catch (e) { setErr(e.message); }
+    setFinalizing(false);
+  }
+
+  return <section className="wizard-step">
+    <h2>Review &amp; finalize</h2>
+    <p className="wizard-step-sub">{recipients.length} rows ingested. Tabs show each bucket; counts are live.</p>
+    {err && <div className="wizard-err" style={{margin:0}}>{err}</div>}
+
+    <div className="wizard-tabs">
+      <Tab label="Assigned" n={counts.assigned} active={tab==='assigned'} onClick={() => setTab('assigned')} color="#15803d"/>
+      <Tab label="Needs review" n={counts.needs_review} active={tab==='needs_review'} onClick={() => setTab('needs_review')} color="#7c3aed"/>
+      <Tab label="Out of area" n={counts.flagged_out_of_area} active={tab==='flagged_out_of_area'} onClick={() => setTab('flagged_out_of_area')} color="#b45309"/>
+      <Tab label="Geocode failed" n={counts.geocode_failed} active={tab==='geocode_failed'} onClick={() => setTab('geocode_failed')} color="#dc2626"/>
+    </div>
+
+    {loading
+      ? <div style={{padding:24,color:'#9ca3af'}}>Loading…</div>
+      : inTab.length === 0
+        ? <div className="wizard-empty">Nothing in this bucket. 🎉</div>
+        : <div className="wizard-row-list">{inTab.map(r => <RecipientRow key={r.id} row={r} bucket={tab} onChanged={reload}/>)}</div>}
+
+    <div className="wizard-footer">
+      <button className="btn-ghost" onClick={onBack}>‹ Back to columns</button>
+      <div style={{flex:1, fontSize:12, color:'#6b7280', textAlign:'right', marginRight:8}}>
+        {counts.assigned} will be delivered. {stillProblematic} still need attention.
+      </div>
+      <button className="btn-primary" onClick={finalize} disabled={finalizing}>
+        {finalizing ? 'Finalizing…' : 'Finalize campaign'}
+      </button>
+    </div>
+  </section>;
+}
+
+function Tab({label, n, active, onClick, color}) {
+  const cls = 'wizard-tab' + (active ? ' active' : '');
+  const style = active ? {borderBottomColor: color, color} : {};
+  return <button className={cls} style={style} onClick={onClick}>{label} <span className="wizard-tab-count">{n}</span></button>;
+}
+
+// Per-row action surface. Different bucket → different default action set:
+//   needs_review        → Accept / Edit / Skip
+//   flagged_out_of_area → Edit address (re-runs geocode + area-match) / Tell admin
+//   geocode_failed      → Edit & retry (re-runs geocode + area-match)
+//   assigned            → Edit only (re-bucket happens automatically on save)
+function RecipientRow({row, bucket, onChanged}) {
+  const [editing, setEditing] = useState(false);
+  const [working, setWorking] = useState(false);
+  const [err, setErr] = useState('');
+  const [draft, setDraft] = useState({
+    company: row.company || '',
+    contact_name: row.contact_name || '',
+    phone: row.phone || '',
+    email: row.email || '',
+    address: row.address || '',
+    city: row.city || '',
+    state: row.state || '',
+    zip: row.zip || '',
+  });
+
+  async function accept(fields) {
+    setWorking(true); setErr('');
+    try {
+      const f = fields || draft;
+      // For out-of-area / geocode_failed rows, the address probably changed
+      // and we need to re-run Mapbox + the polygon check before the row can
+      // legitimately become 'assigned'. Plain UPDATE wouldn't move it.
+      if (bucket === 'flagged_out_of_area' || bucket === 'geocode_failed') {
+        await Customer.retryGeocode(row.id, {
+          address: f.address, city: f.city, state: f.state, zip: f.zip,
+        });
+      } else {
+        await Customer.acceptRecipient(row.id, f);
+      }
+      setEditing(false);
+      onChanged();
+    } catch (e) { setErr(e.message || String(e)); }
+    setWorking(false);
+  }
+
+  async function skip() {
+    setWorking(true); setErr('');
+    try { await Customer.skipRecipient(row.id); onChanged(); }
+    catch (e) { setErr(e.message || String(e)); }
+    setWorking(false);
+  }
+
+  function copyMail() {
+    const subject = encodeURIComponent('Out-of-area recipient: ' + row.company);
+    const body = encodeURIComponent(
+      `Recipient address falls outside every bakery polygon:\n\n${row.company}\n${row.address || ''}, ${row.city || ''} ${row.state || ''} ${row.zip || ''}\n\nCan a bakery cover this?`
+    );
+    window.location.href = 'mailto:contact@daymaker.com?subject=' + subject + '&body=' + body;
+  }
+
+  return <div className="wizard-row">
+    <div className="wizard-row-main" style={{flex:1, minWidth:0}}>
+      {editing ? (
+        <div className="wizard-row-edit">
+          <input value={draft.company} onChange={e => setDraft(d => ({...d, company: e.target.value}))} placeholder="Company"/>
+          <input value={draft.address} onChange={e => setDraft(d => ({...d, address: e.target.value}))} placeholder="Address"/>
+          <input value={draft.city} onChange={e => setDraft(d => ({...d, city: e.target.value}))} placeholder="City"/>
+          <input value={draft.state} onChange={e => setDraft(d => ({...d, state: e.target.value}))} placeholder="ST" style={{width:60}}/>
+          <input value={draft.zip} onChange={e => setDraft(d => ({...d, zip: e.target.value}))} placeholder="ZIP" style={{width:80}}/>
+        </div>
+      ) : (
+        <>
+          <div className="wizard-row-name">{row.company || <em style={{color:'#9ca3af'}}>(no company)</em>}</div>
+          <div className="wizard-row-addr">{[row.address, row.city, row.state, row.zip].filter(Boolean).join(', ') || <em style={{color:'#9ca3af'}}>(no address)</em>}</div>
+          {err && <div style={{fontSize:11,color:'#991b1b',marginTop:4}}>{err}</div>}
+        </>
+      )}
+    </div>
+    <div className="wizard-row-actions">
+      {!editing && bucket === 'needs_review' && <>
+        <button className="btn-primary" disabled={working} onClick={() => accept()}>Accept</button>
+        <button className="btn-ghost" disabled={working} onClick={() => setEditing(true)}>Edit</button>
+        <button className="btn-ghost" disabled={working} onClick={skip}>Skip</button>
+      </>}
+      {!editing && bucket === 'flagged_out_of_area' && <>
+        <button className="btn-ghost" disabled={working} onClick={() => setEditing(true)}>Edit address</button>
+        <button className="btn-ghost" disabled={working} onClick={copyMail}>Tell admin</button>
+      </>}
+      {!editing && bucket === 'geocode_failed' && <>
+        <button className="btn-ghost" disabled={working} onClick={() => setEditing(true)}>Edit &amp; retry</button>
+      </>}
+      {!editing && bucket === 'assigned' && <>
+        <button className="btn-ghost" disabled={working} onClick={() => setEditing(true)}>Edit</button>
+      </>}
+      {editing && <>
+        <button className="btn-primary" disabled={working} onClick={() => accept(draft)}>{working ? 'Saving…' : 'Save'}</button>
+        <button className="btn-ghost" disabled={working} onClick={() => setEditing(false)}>Cancel</button>
+      </>}
+    </div>
+  </div>;
+}
