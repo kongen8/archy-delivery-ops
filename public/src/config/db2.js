@@ -114,14 +114,18 @@ const DB2 = {
 
   async saveStatus(recipientId, status, note, photoUrl) {
     if (!sb) return;
-    await sb.from('delivery_statuses_v2').upsert({
-      recipient_id: recipientId,
-      status,
-      note: note || null,
-      photo_url: photoUrl || null,
-      delivered_at: status === 'delivered' ? new Date().toISOString() : null,
-      updated_at: new Date().toISOString(),
-    });
+    const { error } = await sb.from('delivery_statuses_v2').upsert(
+      {
+        recipient_id: recipientId,
+        status,
+        note: note || null,
+        photo_url: photoUrl || null,
+        delivered_at: status === 'delivered' ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'recipient_id' }
+    );
+    if (error) console.warn('DB2 saveStatus failed:', error, { recipientId, status });
   },
 
   async deleteStatus(recipientId) {
