@@ -69,6 +69,26 @@
     const REGIONS = {};
     const ROUTE_DATA = {};
     const legacyIdToRecipientId = {};
+    // Build the legacy→uuid map eagerly so it's available for remapping saved routes
+    // (which contain stops keyed by the original Archy string id like "SF_220_Dentistry_21").
+    for (const r of recipients) {
+      if (r.legacy_id) legacyIdToRecipientId[r.legacy_id] = r.id;
+    }
+
+    function remapSavedRoute(data) {
+      if (!data || !Array.isArray(data.days)) return data;
+      const days = data.days.map(dd => ({
+        ...dd,
+        routes: (dd.routes || []).map(rt => ({
+          ...rt,
+          stops: (rt.stops || []).map(s => {
+            const mapped = legacyIdToRecipientId[s.id];
+            return mapped ? { ...s, id: mapped, _legacyId: s.id } : s;
+          }),
+        })),
+      }));
+      return { ...data, days };
+    }
 
     for (const area of areas) {
       const bakery = bakeryById.get(area.bakery_id);
@@ -99,12 +119,9 @@
       const savedRoute = routes.find(r => r.delivery_area_id === area.id);
 
       if (savedRoute) {
-        ROUTE_DATA[key] = savedRoute.data;
+        ROUTE_DATA[key] = remapSavedRoute(savedRoute.data);
       } else {
-        const stops = matchingRecips.map(r => {
-          if (r.legacy_id) legacyIdToRecipientId[r.legacy_id] = r.id;
-          return recipientToStop(r, bakery.name);
-        });
+        const stops = matchingRecips.map(r => recipientToStop(r, bakery.name));
         ROUTE_DATA[key] = {
           ts: stops.length,
           ndays: 1,
