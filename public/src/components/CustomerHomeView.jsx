@@ -35,22 +35,25 @@ function CustomerHomeView({customerId}){
         <span style={{fontSize:12,color:'#94a3b8'}}>Campaigns · Delivery progress</span>
       </div>
       <div style={{display:'flex',gap:8,alignItems:'center'}}>
-        <button className="btn-primary" disabled title="Coming soon in Plan 3" style={{opacity:0.5,cursor:'not-allowed'}}>+ Upload campaign (coming soon)</button>
+        <button className="btn-primary" onClick={()=>navigate('#/customer/'+customerId+'/upload/new')}>+ Upload campaign</button>
         <ProfileSwitcher/>
       </div>
     </div>
 
     {campaigns.length===0?<div style={{padding:40,textAlign:'center',color:'#94a3b8'}}>No campaigns yet.</div>:
       <div style={{display:'flex',flexDirection:'column',gap:12}}>
-        {campaigns.map(c=><CampaignCard key={c.id} campaign={c} counts={counts[c.id]} progress={progress[c.id]}/>)}
+        {campaigns.map(c=><CampaignCard key={c.id} campaign={c} customerId={customerId} counts={counts[c.id]} progress={progress[c.id]}/>)}
       </div>
     }
   </div>;
 }
 
-function CampaignCard({campaign,counts,progress}){
+function CampaignCard({campaign,customerId,counts,progress}){
   const pct=progress&&progress.total?Math.round(100*progress.delivered/progress.total):0;
-  return <div style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:8,padding:16}}>
+  // Drafts open the wizard so customers can resume; active campaigns are
+  // read-only here until Plan 4 adds an in-flight monitor view.
+  const onClick=campaign.status==='draft'?()=>navigate('#/customer/'+customerId+'/upload/'+campaign.id):undefined;
+  return <div onClick={onClick} style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:8,padding:16,cursor:onClick?'pointer':'default'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:10}}>
       <div style={{fontWeight:600}}>{campaign.name}</div>
       <div style={{fontSize:11,color:'#6b7280',textTransform:'uppercase',letterSpacing:'0.05em'}}>{campaign.status}</div>

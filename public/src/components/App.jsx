@@ -10,6 +10,9 @@ function App(){
     return <BakeryHomeView bakeryId={profile.id}/>;
   }
   if(profile.type==='customer'&&profile.id){
+    if(route.view==='customer'&&route.page==='upload'){
+      return <UploadWizard customerId={route.customerId} campaignId={route.campaignId}/>;
+    }
     return <CustomerHomeView customerId={profile.id}/>;
   }
 
