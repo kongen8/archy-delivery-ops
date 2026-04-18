@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Plan 3 — Wizard shape</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px;background:#f3f4f6;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;color:#111827}
+  h1{font-size:22px;font-weight:700;margin:0 0 6px}
+  .subtitle{color:#6b7280;font-size:14px;margin:0 0 28px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:20px;max-width:1280px;margin:0 auto}
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;transition:transform 0.15s,box-shadow 0.15s}
+  .card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.08)}
+  .card-image{padding:0;background:#f3f4f6;border-bottom:1px solid #e5e7eb}
+  .card-body{padding:18px}
+  .card-body h3{margin:0 0 8px;font-size:16px;font-weight:600}
+  .card-body p{margin:0;font-size:13px;color:#6b7280;line-height:1.5}
+  code{background:#f3f4f6;padding:1px 5px;border-radius:3px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+  .header{max-width:1280px;margin:0 auto 28px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Customer upload wizard — overall shape</h1>
+  <p class="subtitle">Three different containers for the same 3 steps (name + file → confirm columns → review buckets → finalize). My recommendation is B (dedicated page).</p>
+</div>
+
+<div class="cards">
+
+  <!-- A: Modal over home -->
+  <div class="card">
+    <div class="card-image">
+      <div style="position:relative;height:280px;background:#fff;overflow:hidden">
+        <div style="position:absolute;inset:0;padding:18px;opacity:0.35">
+          <div style="font-size:11px;color:#94a3b8;margin-bottom:10px">Daymaker · Customer home</div>
+          <div style="height:54px;background:#f3f4f6;border-radius:6px;margin-bottom:8px"></div>
+          <div style="height:54px;background:#f3f4f6;border-radius:6px;margin-bottom:8px"></div>
+          <div style="height:54px;background:#f3f4f6;border-radius:6px"></div>
+        </div>
+        <div style="position:absolute;inset:0;background:rgba(15,23,42,0.25)"></div>
+        <div style="position:absolute;top:32px;left:42px;right:42px;bottom:32px;background:#fff;border-radius:10px;box-shadow:0 16px 40px rgba(0,0,0,0.25);padding:16px;display:flex;flex-direction:column">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;color:#374151;margin-bottom:12px">
+            <span>Upload campaign</span><span style="color:#94a3b8;font-size:11px">Step 2 of 3</span>
+          </div>
+          <div style="display:flex;gap:4px;margin-bottom:12px">
+            <div style="flex:1;height:4px;background:#10b981;border-radius:2px"></div>
+            <div style="flex:1;height:4px;background:#10b981;border-radius:2px"></div>
+            <div style="flex:1;height:4px;background:#e5e7eb;border-radius:2px"></div>
+          </div>
+          <div style="flex:1;background:#f9fafb;border:1px dashed #e5e7eb;border-radius:6px;padding:10px;font-size:11px;color:#6b7280">Confirm column mapping…</div>
+          <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px">
+            <div style="font-size:11px;color:#374151;padding:5px 12px;border:1px solid #d1d5db;border-radius:4px">Back</div>
+            <div style="font-size:11px;color:#fff;background:#2563eb;padding:5px 12px;border-radius:4px">Continue</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · Modal over Customer Home</h3>
+      <p>Wizard floats over a dimmed background. Customer never leaves the home page, can dismiss to come back later (campaign saved as draft). Lightweight; the wizard itself is small (~600px wide).</p>
+    </div>
+  </div>
+
+  <!-- B: Dedicated wizard page -->
+  <div class="card" style="border-color:#2563eb;border-width:2px">
+    <div class="card-image">
+      <div style="position:relative;height:280px;background:#fff;display:flex">
+        <div style="width:140px;background:#f9fafb;border-right:1px solid #e5e7eb;padding:18px 14px;font-size:11px;color:#6b7280">
+          <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:14px;font-weight:600">Upload</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;color:#10b981">
+            <span style="width:18px;height:18px;border-radius:50%;background:#10b981;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600">✓</span>
+            <span>File</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;color:#111;font-weight:600">
+            <span style="width:18px;height:18px;border-radius:50%;background:#2563eb;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600">2</span>
+            <span>Columns</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;color:#9ca3af">
+            <span style="width:18px;height:18px;border-radius:50%;background:#e5e7eb;color:#6b7280;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600">3</span>
+            <span>Review</span>
+          </div>
+        </div>
+        <div style="flex:1;padding:18px;display:flex;flex-direction:column">
+          <div style="font-size:14px;font-weight:600;color:#111;margin-bottom:4px">Confirm column mapping</div>
+          <div style="font-size:11px;color:#6b7280;margin-bottom:12px">AI matched 4 of 5 columns confidently.</div>
+          <div style="flex:1;background:#f9fafb;border:1px solid #f3f4f6;border-radius:6px;padding:8px">
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#6b7280;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #f3f4f6">
+              <span>Source column</span><span>Maps to</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#374151;margin-bottom:4px"><span>Business Name</span><span>company ✓</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#374151;margin-bottom:4px"><span>Street Address</span><span>address ✓</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#b45309"><span>Notes</span><span>?</span></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+            <div style="font-size:11px;color:#6b7280">‹ Back</div>
+            <div style="font-size:11px;color:#fff;background:#2563eb;padding:6px 14px;border-radius:4px">Continue</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · Dedicated wizard page <span style="color:#2563eb;font-size:11px;font-weight:600;margin-left:6px">RECOMMENDED</span></h3>
+      <p>Each step gets the full screen with a sidebar showing progress. Routes like <code>#/customer/abc/upload</code>. Feels more substantial; lots of room for the column-mapping table and the bucket review. Customer leaves home, comes back when done.</p>
+    </div>
+  </div>
+
+  <!-- C: Inline accordion -->
+  <div class="card">
+    <div class="card-image">
+      <div style="position:relative;height:280px;background:#fff;padding:18px">
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:12px">Customer home · Daymaker</div>
+        <div style="border:2px dashed #2563eb;border-radius:8px;padding:12px;margin-bottom:8px;background:#eff6ff">
+          <div style="font-size:12px;font-weight:600;color:#111;margin-bottom:8px">⬇ New campaign upload</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="font-size:10px;color:#10b981">✓ File parsed (218 rows)</div>
+            <div style="font-size:10px;color:#10b981">✓ Columns confirmed</div>
+            <div style="font-size:10px;color:#2563eb;font-weight:600">▾ Review buckets (open)</div>
+            <div style="background:#fff;border:1px solid #e5e7eb;border-radius:4px;padding:8px;font-size:10px;color:#6b7280;margin-top:6px">
+              198 assigned · 12 needs review · 6 out of area · 2 failed
+            </div>
+          </div>
+        </div>
+        <div style="height:38px;background:#f3f4f6;border-radius:6px;margin-bottom:6px;opacity:0.6"></div>
+        <div style="height:38px;background:#f3f4f6;border-radius:6px;opacity:0.6"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C · Inline accordion on home</h3>
+      <p>The upload becomes a card on the customer home that expands as steps complete. Existing campaigns stay visible below. Feels lighter and you keep context, but the column-mapping table and bucket review get cramped.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
