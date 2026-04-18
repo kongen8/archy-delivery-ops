@@ -95,13 +95,12 @@ const DB2 = {
   // --- Statuses (v2) ---
   async loadStatuses(campaignId) {
     if (!sb) return {};
-    const recipsRes = await sb.from('recipients').select('id').eq('campaign_id', campaignId);
-    const ids = (recipsRes.data || []).map(r => r.id);
-    if (!ids.length) return {};
-    const { data } = await sb
+    // Scope by campaign via FK-embed, not a giant IN(...) list (URL overflow at ~918 ids).
+    const { data, error } = await sb
       .from('delivery_statuses_v2')
-      .select('recipient_id, status, note, photo_url, delivered_at')
-      .in('recipient_id', ids);
+      .select('recipient_id, status, note, photo_url, delivered_at, recipients!inner(campaign_id)')
+      .eq('recipients.campaign_id', campaignId);
+    if (error) { console.warn('DB2 loadStatuses failed:', error); return {}; }
     const out = {};
     (data || []).forEach(row => {
       if (row.status !== 'pending') out[row.recipient_id] = row.status;
@@ -158,17 +157,23 @@ const DB2 = {
 
   async loadAllPhotos(campaignId) {
     if (!sb) return [];
-    const { data: recips } = await sb.from('recipients').select('id, company, city').eq('campaign_id', campaignId);
-    if (!recips?.length) return [];
-    const ids = recips.map(r => r.id);
-    const { data } = await sb
+    const { data, error } = await sb
       .from('delivery_statuses_v2')
-      .select('recipient_id, status, note, photo_url, delivered_at, updated_at')
-      .not('photo_url', 'is', null)
-      .in('recipient_id', ids);
-    const byId = new Map(recips.map(r => [r.id, r]));
+      .select('recipient_id, status, note, photo_url, delivered_at, updated_at, recipients!inner(campaign_id, company, city)')
+      .eq('recipients.campaign_id', campaignId)
+      .not('photo_url', 'is', null);
+    if (error) { console.warn('DB2 loadAllPhotos failed:', error); return []; }
     return (data || [])
-      .map(row => ({ ...row, company: byId.get(row.recipient_id)?.company, city: byId.get(row.recipient_id)?.city }))
+      .map(row => ({
+        recipient_id: row.recipient_id,
+        status: row.status,
+        note: row.note,
+        photo_url: row.photo_url,
+        delivered_at: row.delivered_at,
+        updated_at: row.updated_at,
+        company: row.recipients?.company,
+        city: row.recipients?.city,
+      }))
       .sort((a, b) => {
         const ta = new Date(a.delivered_at || a.updated_at || 0).getTime();
         const tb = new Date(b.delivered_at || b.updated_at || 0).getTime();
