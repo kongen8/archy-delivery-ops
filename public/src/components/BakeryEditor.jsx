@@ -8,15 +8,24 @@ function BakeryEditor({bakeryId,isNew}){
   const[err,setErr]=useState('');
   const[bakery,setBakery]=useState(null);
   const[deliveryAreas,setDeliveryAreas]=useState([]);
+  const[otherAreas,setOtherAreas]=useState([]);
   const[depots,setDepots]=useState([]);
+  const[hasInvalid,setHasInvalid]=useState(false);
 
   useEffect(()=>{
-    if(isNew){setLoaded(true);return;}
+    if(isNew){
+      setLoaded(true);
+      Admin.listOtherBakeryAreas(null).then(setOtherAreas).catch(()=>{});
+      return;
+    }
     (async()=>{
       try{
-        const{bakery:b,delivery_areas,depots:d}=await Admin.getBakery(bakeryId);
+        const[{bakery:b,delivery_areas,depots:d},others]=await Promise.all([
+          Admin.getBakery(bakeryId),
+          Admin.listOtherBakeryAreas(bakeryId),
+        ]);
         setBakery(b);setName(b.name||'');setEmail(b.contact_email||'');setPhone(b.contact_phone||'');
-        setDeliveryAreas(delivery_areas);setDepots(d);setLoaded(true);
+        setDeliveryAreas(delivery_areas);setDepots(d);setOtherAreas(others);setLoaded(true);
       }catch(e){setErr(e.message);setLoaded(true);}
     })();
   },[bakeryId,isNew]);
@@ -62,10 +71,7 @@ function BakeryEditor({bakeryId,isNew}){
 
       <div className="admin-section">
         <h4>Delivery areas ({deliveryAreas.length})</h4>
-        <div style={{fontSize:12,color:'#9ca3af'}}>Polygon draw tools arrive in Task 8. Existing areas are listed below.</div>
-        <ul style={{listStyle:'none',padding:0,margin:'8px 0 0'}}>
-          {deliveryAreas.map(a=><li key={a.id} style={{padding:'6px 0',fontSize:12,color:'#374151'}}>{a.name||'(unnamed area)'}</li>)}
-        </ul>
+        <div style={{fontSize:12,color:'#9ca3af'}}>Draw polygons on the map. Red = overlap with an existing area.</div>
       </div>
 
       {!isNew&&bakery&&<div className="admin-section">
@@ -84,12 +90,31 @@ function BakeryEditor({bakeryId,isNew}){
 
       <div style={{position:'sticky',bottom:0,background:'#fff',paddingTop:14,marginTop:14,borderTop:'1px solid #f3f4f6',display:'flex',gap:8,justifyContent:'flex-end'}}>
         <button className="btn-ghost" onClick={()=>navigate('#/admin')}>Cancel</button>
-        <button className="btn-primary" disabled={saving||!name} onClick={save}>{saving?'Saving…':isNew?'Create bakery':'Save'}</button>
+        <button className="btn-primary" disabled={saving||!name||hasInvalid} title={hasInvalid?'Fix overlapping areas first':''} onClick={save}>{saving?'Saving…':isNew?'Create bakery':'Save'}</button>
       </div>
     </aside>
 
-    <main style={{flex:1,background:'#f3f4f6',display:'flex',alignItems:'center',justifyContent:'center',color:'#9ca3af',fontSize:13}}>
-      Map · polygon drawing wired up in Task 8.
+    <main style={{flex:1,position:'relative',background:'#f3f4f6'}}>
+      {!isNew&&bakery?<DeliveryAreaDraw
+        areas={deliveryAreas}
+        otherBakeryAreas={otherAreas}
+        onCreate={async(f)=>{
+          const saved=await Admin.upsertDeliveryArea({bakery_id:bakery.id,name:null,geometry:f.geometry});
+          setDeliveryAreas(prev=>[...prev,saved]);
+          return{id:saved.id,name:saved.name||''};
+        }}
+        onUpdate={async(id,f)=>{
+          const saved=await Admin.upsertDeliveryArea({id,bakery_id:bakery.id,name:null,geometry:f.geometry});
+          setDeliveryAreas(prev=>prev.map(a=>a.id===id?saved:a));
+        }}
+        onDelete={async(id)=>{
+          await Admin.deleteDeliveryArea(id);
+          setDeliveryAreas(prev=>prev.filter(a=>a.id!==id));
+        }}
+        onInvalidChange={setHasInvalid}
+      />:<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'#9ca3af',fontSize:13}}>
+        Create the bakery first, then draw delivery areas on the map.
+      </div>}
     </main>
   </div>;
 }

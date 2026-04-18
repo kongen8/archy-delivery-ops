@@ -95,6 +95,21 @@ const Admin = {
     if (error) throw error;
   },
 
+  async listOtherBakeryAreas(excludeBakeryId) {
+    if (!sb) return [];
+    let q = sb.from('delivery_areas').select('id, bakery_id, name, geometry, bakeries(name)');
+    if (excludeBakeryId) q = q.neq('bakery_id', excludeBakeryId);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data || []).map(r => ({
+      id: r.id,
+      bakery_id: r.bakery_id,
+      bakery_name: r.bakeries?.name || '',
+      name: r.name,
+      geometry: r.geometry,
+    }));
+  },
+
   async createCustomer({ name, contact_email }) {
     if (!sb) throw new Error('sb not ready');
     const row = { name, contact_email: contact_email || null, access_token: genToken() };

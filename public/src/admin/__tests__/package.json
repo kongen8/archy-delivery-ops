@@ -1,0 +1,7 @@
+{
+  "name": "overlap-test",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test overlap.test.mjs" },
+  "dependencies": { "@turf/turf": "^7.0.0" }
+}

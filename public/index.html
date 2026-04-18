@@ -14,8 +14,13 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.js"></script>
 
+  <!-- Polygon draw tools + polygon math (Plan 2) -->
+  <script src="https://unpkg.com/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.js"></script>
+  <script src="https://unpkg.com/@turf/turf@7/turf.min.js"></script>
+
   <!-- Third-party stylesheets -->
   <link href="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.css" rel="stylesheet"/>
+  <link href="https://unpkg.com/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 
   <!-- App stylesheet -->
@@ -50,6 +55,9 @@
 
   <!-- Admin data-access layer (Plan 2) -->
   <script src="./src/db/admin.js"></script>
+
+  <!-- Polygon overlap helper (Plan 2) -->
+  <script src="./src/admin/overlap.js"></script>
 
   <!-- Mapbox public token (browser-safe pk.*) -->
   <script src="./src/config/mapbox.js"></script>
@@ -87,6 +95,7 @@
 
   <!-- Plan 2 views (depend on everything above) -->
   <script type="text/babel" src="./src/components/ProfileSwitcher.jsx"></script>
+  <script type="text/babel" src="./src/components/DeliveryAreaDraw.jsx"></script>
   <script type="text/babel" src="./src/components/BakeryEditor.jsx"></script>
   <script type="text/babel" src="./src/components/CustomerEditor.jsx"></script>
   <script type="text/babel" src="./src/components/AdminView.jsx"></script>
