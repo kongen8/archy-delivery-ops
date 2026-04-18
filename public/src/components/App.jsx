@@ -8,6 +8,7 @@ function App(){
   const[syncing,setSyncing]=useState(true);
   const[bootErr,setBootErr]=useState('');
   const[archyCtx,setArchyCtx]=useState(null);
+  const[depotsRev,setDepotsRev]=useState(0);
 
   useEffect(()=>{
     if(!DB2.ready){
@@ -55,18 +56,10 @@ function App(){
     return()=>unsub();
   },[]);
 
-  const onDepotsChange=useCallback(async(regionKey,newDepots)=>{
-    const r=window.REGIONS[regionKey];
-    if(!r||!r._bakeryId)return;
-    // Full replacement: delete current depots for this bakery and insert the new set.
-    // Simple and correct; depot count is small so the round-trips are fine.
-    const current=await DB2.loadDepots(r._bakeryId);
-    for(const d of current)await DB2.deleteDepot(d.id);
-    for(const d of newDepots){
-      await DB2.upsertDepot({bakeryId:r._bakeryId,name:d.name,address:d.addr||d.address||'',lat:d.lat,lon:d.lon});
-    }
+  const onDepotsChange=useCallback(async()=>{
     const shape=await ArchyAdapter.buildLegacyShape();
     if(shape){window.REGIONS=shape.REGIONS;window.ROUTE_DATA=shape.ROUTE_DATA;}
+    setDepotsRev(v=>v+1);
   },[]);
 
   const onRebalance=useCallback((regionKey,newData)=>{

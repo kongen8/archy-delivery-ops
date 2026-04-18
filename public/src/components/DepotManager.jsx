@@ -1,6 +1,6 @@
-// ===== DEPOT MANAGER COMPONENT =====
-function DepotManager({regionKey,depots,onDepotsChange}){
-  const[editing,setEditing]=useState(null); // index or 'new'
+// ===== DEPOT MANAGER (multi-tenant: writes via DB2.depots) =====
+function DepotManager({regionKey,bakeryId,depots,onDepotsChange}){
+  const[editing,setEditing]=useState(null);
   const[editName,setEditName]=useState('');
   const[editAddr,setEditAddr]=useState('');
   const[geocoding,setGeocoding]=useState(false);
@@ -9,37 +9,37 @@ function DepotManager({regionKey,depots,onDepotsChange}){
   const startEdit=(i)=>{
     setEditing(i);
     setEditName(depots[i].name);
-    setEditAddr(depots[i].addr||'');
+    setEditAddr(depots[i].addr||depots[i].address||'');
     setGeoError('');
   };
   const startAdd=()=>{
-    setEditing('new');
-    setEditName('');
-    setEditAddr('');
-    setGeoError('');
+    setEditing('new');setEditName('');setEditAddr('');setGeoError('');
   };
   const cancel=()=>{setEditing(null);setGeoError('');};
 
   const save=async()=>{
     if(!editName.trim()||!editAddr.trim())return;
+    if(!bakeryId){setGeoError('No bakery in context — reload and try again.');return;}
     setGeocoding(true);setGeoError('');
     const geo=await geocodeAddress(editAddr.trim());
     setGeocoding(false);
     if(!geo){setGeoError('Could not geocode address. Check the address and try again.');return;}
 
-    const updated=[...depots];
-    const entry={name:editName.trim(),addr:editAddr.trim(),lat:geo.lat,lon:geo.lon};
-    if(editing==='new'){updated.push(entry);}
-    else{updated[editing]=entry;}
-    onDepotsChange(regionKey,updated);
+    if(editing==='new'){
+      await DB2.upsertDepot({bakeryId,name:editName.trim(),address:editAddr.trim(),lat:geo.lat,lon:geo.lon});
+    }else{
+      const existing=depots[editing];
+      await DB2.upsertDepot({id:existing.id,bakeryId,name:editName.trim(),address:editAddr.trim(),lat:geo.lat,lon:geo.lon});
+    }
     setEditing(null);
+    onDepotsChange&&onDepotsChange();
   };
 
-  const remove=(i)=>{
+  const remove=async(i)=>{
     if(depots.length<=1){alert('Must have at least one location.');return;}
     if(!confirm(`Remove "${depots[i].name}"? Routes will need rebalancing.`))return;
-    const updated=depots.filter((_,j)=>j!==i);
-    onDepotsChange(regionKey,updated);
+    if(depots[i].id)await DB2.deleteDepot(depots[i].id);
+    onDepotsChange&&onDepotsChange();
   };
 
   return <div style={{marginTop:12,paddingTop:10,borderTop:'1px solid #f1f5f9'}}>
@@ -54,16 +54,15 @@ function DepotManager({regionKey,depots,onDepotsChange}){
     <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
       {depots.map((dep,i)=>
         editing===i?null:
-        <div key={i} style={{fontSize:12,color:'#475569',background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:6,padding:'4px 10px',display:'flex',alignItems:'center',gap:6}}>
+        <div key={dep.id||i} style={{fontSize:12,color:'#475569',background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:6,padding:'4px 10px',display:'flex',alignItems:'center',gap:6}}>
           <span>{dep.name}</span>
-          <span style={{color:'#94a3b8',fontSize:11}}>{dep.addr?dep.addr.split(',')[0]:''}</span>
+          <span style={{color:'#94a3b8',fontSize:11}}>{(dep.addr||dep.address||'').split(',')[0]}</span>
           <button onClick={()=>startEdit(i)} style={{background:'none',border:'none',color:'#2563eb',cursor:'pointer',fontSize:11,padding:0}}>edit</button>
           {depots.length>1&&<button onClick={()=>remove(i)} style={{background:'none',border:'none',color:'#dc2626',cursor:'pointer',fontSize:11,padding:0}}>×</button>}
         </div>
       )}
     </div>
 
-    {/* Edit/Add form */}
     {editing!==null&&<div style={{marginTop:8,padding:12,background:'#f8fafc',borderRadius:8,border:'1px solid #e2e8f0'}}>
       <div style={{fontSize:12,fontWeight:600,marginBottom:8,color:'#0f172a'}}>{editing==='new'?'Add location':'Edit location'}</div>
       <div style={{display:'flex',flexDirection:'column',gap:8}}>

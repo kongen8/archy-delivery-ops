@@ -5,6 +5,7 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
   if(!data)return <div style={{padding:40,textAlign:'center',color:'#94a3b8'}}>No data</div>;
 
   // Effective depots: overrides take priority, then data.depots, then empty
+  const bakeryId=(REGIONS[regionKey]&&REGIONS[regionKey]._bakeryId)||null;
   const effectiveDepots=depotOverrides[regionKey]||data.depots||[];
 
   const[selDay,setDay]=useState(0);
@@ -119,7 +120,7 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
       <ProgressBar done={totalDone} total={allStops.length} color={region.color}/>
 
       {/* Depot management */}
-      <DepotManager regionKey={regionKey} depots={effectiveDepots} onDepotsChange={onDepotsChange}/>
+      <DepotManager regionKey={regionKey} bakeryId={bakeryId} depots={effectiveDepots} onDepotsChange={onDepotsChange}/>
 
       {/* Per-day depot activation (multi-depot only) */}
       {effectiveDepots.length>1&&dayData&&<div style={{marginTop:8,padding:10,background:'#fefce8',borderRadius:8,border:'1px solid #fde68a'}}>
