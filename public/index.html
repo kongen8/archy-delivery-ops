@@ -37,6 +37,11 @@
   <!-- Embedded route dataset (populates window.ROUTE_DATA) -->
   <script src="./data/routes.js"></script>
 
+  <!-- Tenant token bootstrap (runs before supabase.js). Renders a login gate
+       into #root when no token is found, and sets window.__TENANT_TOKEN__ /
+       window.__TENANT_GATE_ACTIVE__ for the scripts below. -->
+  <script src="./src/config/tenant.js"></script>
+
   <!-- Persistence layer (Supabase client + DB facade) -->
   <script src="./src/config/supabase.js"></script>
 
@@ -78,9 +83,11 @@
   <script type="text/babel" src="./src/components/PhotosView.jsx"></script>
   <script type="text/babel" src="./src/components/App.jsx"></script>
 
-  <!-- Mount the React tree -->
+  <!-- Mount the React tree (skip when the tenant gate is showing) -->
   <script type="text/babel">
-    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+    if (!window.__TENANT_GATE_ACTIVE__) {
+      ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+    }
   </script>
 </body>
 </html>
