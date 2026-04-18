@@ -34,9 +34,6 @@
     const {useState, useMemo, useCallback, useRef, useEffect} = React;
   </script>
 
-  <!-- Embedded route dataset (populates window.ROUTE_DATA) -->
-  <script src="./data/routes.js"></script>
-
   <!-- Tenant token bootstrap (runs before supabase.js). Renders a login gate
        into #root when no token is found, and sets window.__TENANT_TOKEN__ /
        window.__TENANT_GATE_ACTIVE__ for the scripts below. -->
