@@ -216,13 +216,32 @@ async function migrateRouteOverrides(campaign, bakeries) {
   }
   if (!oldOverrides || !oldOverrides.length) return 0;
 
+  // Each route override belongs to a region. In the new schema, routes are
+  // keyed by (campaign_id, bakery_id, delivery_area_id) — look up the area
+  // created earlier by migrateDeliveryAreas (named "<region> (migrated)").
   let count = 0;
   for (const row of oldOverrides) {
     const bakery = bakeries[REGION_BAKERY[row.region]];
     if (!bakery) continue;
+    const areaName = `${row.region} (migrated)`;
+    const { data: area } = await sb
+      .from('delivery_areas')
+      .select('id')
+      .eq('bakery_id', bakery.id)
+      .eq('name', areaName)
+      .maybeSingle();
+    if (!area) {
+      console.warn(`  skipping route_override for region "${row.region}" (no delivery_area)`);
+      continue;
+    }
     const { error: uerr } = await sb.from('routes').upsert(
-      { campaign_id: campaign.id, bakery_id: bakery.id, data: row.data },
-      { onConflict: 'campaign_id,bakery_id' }
+      {
+        campaign_id: campaign.id,
+        bakery_id: bakery.id,
+        delivery_area_id: area.id,
+        data: row.data,
+      },
+      { onConflict: 'campaign_id,bakery_id,delivery_area_id' }
     );
     if (uerr) throw uerr;
     count++;
