@@ -1,0 +1,14 @@
+{
+  "name": "migrate-archy",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test lib.test.js",
+    "migrate": "node migrate-archy.js",
+    "verify": "node verify.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5"
+  }
+}
