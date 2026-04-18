@@ -1,10 +1,20 @@
 // ===== SUPABASE CONFIG =====
-// Replace these with your Supabase project credentials:
 const SUPABASE_URL = window.__SUPABASE_URL__ || 'https://vqmjevtthpedzdfotaie.supabase.co';
 const SUPABASE_ANON_KEY = window.__SUPABASE_ANON_KEY__ || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxbWpldnR0aHBlZHpkZm90YWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzODIwODcsImV4cCI6MjA5MTk1ODA4N30.mct_oZri4PLJVkrhZC3uzkq0qMYZExM7Y_30mQP30S8';
 
 const _supabaseReady = SUPABASE_URL !== 'PLACEHOLDER_NOT_SET' && typeof supabase !== 'undefined';
 const sb = _supabaseReady ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+// Build a tenant-scoped client that sends an x-tenant-token header on every request.
+// RLS policies added in Task 10 check this header against bakeries.access_token /
+// customers.access_token. Returns null if supabase-js didn't load.
+function makeTenantClient(token) {
+  if (!_supabaseReady || !token) return null;
+  return supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { 'x-tenant-token': token } }
+  });
+}
+window.makeTenantClient = makeTenantClient;
 
 // ===== PERSISTENCE LAYER =====
 const DB = {
