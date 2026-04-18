@@ -4,6 +4,7 @@ function AddressAutocomplete({value, onValueChange, onPick, placeholder, proximi
   const [suggestions, setSuggestions] = useState([]);
   const [highlight, setHighlight] = useState(-1);
   const [loading, setLoading] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const sessionRef = useRef(null);
   const abortRef = useRef(null);
   const inputRef = useRef(null);
@@ -12,7 +13,8 @@ function AddressAutocomplete({value, onValueChange, onPick, placeholder, proximi
   useEffect(() => { if (autoFocus && inputRef.current) inputRef.current.focus(); }, [autoFocus]);
 
   useEffect(() => {
-    if (!value || value.trim().length < 3) { setSuggestions([]); return; }
+    if (!dirty) return;
+    if (!value || value.trim().length < 3) { setSuggestions([]); setOpen(false); return; }
     if (!sessionRef.current) sessionRef.current = Math.random().toString(36).slice(2);
     if (abortRef.current) abortRef.current.abort();
     const ctrl = new AbortController();
@@ -23,7 +25,7 @@ function AddressAutocomplete({value, onValueChange, onPick, placeholder, proximi
       if (!ctrl.signal.aborted) { setSuggestions(out); setOpen(out.length > 0); setHighlight(-1); setLoading(false); }
     }, 180);
     return () => { clearTimeout(t); ctrl.abort(); };
-  }, [value]);
+  }, [value, dirty]);
 
   const pick = async (s) => {
     setOpen(false);
@@ -47,8 +49,8 @@ function AddressAutocomplete({value, onValueChange, onPick, placeholder, proximi
 
   return <div style={{position:'relative'}}>
     <input ref={inputRef} value={value}
-      onChange={e => { onValueChange(e.target.value); onPick(null); }}
-      onFocus={() => { if (suggestions.length) setOpen(true); }}
+      onChange={e => { setDirty(true); onValueChange(e.target.value); onPick(null); }}
+      onFocus={() => { if (dirty && suggestions.length) setOpen(true); }}
       onBlur={() => { blurTimerRef.current = setTimeout(() => setOpen(false), 150); }}
       onKeyDown={onKey}
       placeholder={placeholder}

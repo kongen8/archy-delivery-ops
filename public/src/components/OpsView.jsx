@@ -4,9 +4,12 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
   const data=routeOverrides[regionKey]||ROUTE_DATA[regionKey];
   if(!data)return <div style={{padding:40,textAlign:'center',color:'#94a3b8'}}>No data</div>;
 
-  // Effective depots: overrides take priority, then data.depots, then empty
+  // Effective depots: overrides first, then authoritative list from window.ROUTE_DATA
+  // (the adapter keeps it fresh after each DepotManager write), falling back to
+  // whatever is embedded in a saved route override (which may be stale).
   const bakeryId=(REGIONS[regionKey]&&REGIONS[regionKey]._bakeryId)||null;
-  const effectiveDepots=depotOverrides[regionKey]||data.depots||[];
+  const authoritativeDepots=window.ROUTE_DATA&&window.ROUTE_DATA[regionKey]&&window.ROUTE_DATA[regionKey].depots;
+  const effectiveDepots=depotOverrides[regionKey]||authoritativeDepots||data.depots||[];
 
   const[selDay,setDay]=useState(0);
   const[selDrv,setDrv]=useState(0);
