@@ -62,6 +62,70 @@ function normalize(s: string): string {
   return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+export interface NormalizedRow {
+  company: string | null;
+  contact_name: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  confidence: 'low' | 'medium' | 'high';
+}
+
+export async function aiNormalizeRows(rows: Record<string, string>[]): Promise<NormalizedRow[]> {
+  const apiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!apiKey) throw new Error('OPENAI_API_KEY not set');
+  if (rows.length === 0) return [];
+  if (rows.length > 20) throw new Error('aiNormalizeRows accepts at most 20 rows per call');
+
+  // Strip empty fields before prompting so the AI doesn't treat "" as
+  // "user said leave this blank" — absence means "derive if possible".
+  const compactRows = rows.map(r => {
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(r)) if (v && v.trim()) out[k] = v.trim();
+    return out;
+  });
+
+  const prompt = `Clean these spreadsheet rows. RULES:
+- Reformat existing values; never invent missing fields.
+- A field is "missing" only when the input object does not contain that key.
+  When a field IS present (e.g. "address"), you may parse it to derive city /
+  state / zip even if those keys are absent.
+- Aggressively split combined "address" fields into address + city + state + zip,
+  even when no commas separate the parts. Use US postal conventions: a 5-digit
+  ZIP is the zip, the 2-letter state code immediately precedes it, and the
+  city is the words between the street suffix and the state. Only leave city
+  / state / zip null if the address truly lacks that information.
+  Examples:
+    {"address": "330 Main St San Francisco CA 94105"} → address="330 Main St", city="San Francisco", state="CA", zip="94105".
+    {"address": "12 Oak Ave, Boston, MA 02118"}       → address="12 Oak Ave", city="Boston", state="MA", zip="02118".
+    {"address": "PO Box 17"}                          → address="PO Box 17", city=null, state=null, zip=null.
+- For fields not present in the input AND not derivable, return null.
+- Return per-row "confidence": "low" when company OR address is obviously corrupted, "high" otherwise, "medium" in between.
+Return JSON: {"rows": [<NormalizedRow>...]} with all 9 keys (company, contact_name, phone, email, address, city, state, zip, confidence) in the SAME order as input.
+
+Input rows: ${JSON.stringify(compactRows)}`;
+
+  const res = await fetch(OPENAI_URL, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: MODEL, temperature: 0, response_format: { type: 'json_object' },
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!res.ok) throw new Error('OpenAI normalize call failed: ' + res.status);
+  const json = await res.json();
+  console.log('[normalize] raw content:', json.choices[0].message.content);
+  const parsed = JSON.parse(json.choices[0].message.content);
+  if (!Array.isArray(parsed.rows) || parsed.rows.length !== rows.length) {
+    throw new Error('OpenAI returned wrong row count');
+  }
+  return parsed.rows;
+}
+
 export function fallbackMapping(headers: string[]): MappingResult {
   const mapping: Record<string, string | null> = {};
   const confidence: Record<string, 'low' | 'medium' | 'high'> = {};

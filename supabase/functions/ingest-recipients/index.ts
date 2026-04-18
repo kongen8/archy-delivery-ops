@@ -2,7 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import { parseFile } from './parse.ts';
 import { legacyId } from './legacy_id.ts';
 import { bucketFor, Bucket } from './bucket.ts';
-import { aiSuggestMapping, fallbackMapping } from './ai.ts';
+import { aiSuggestMapping, fallbackMapping, aiNormalizeRows } from './ai.ts';
+import type { NormalizedRow } from './ai.ts';
 
 interface IngestRequest {
   campaign_id: string;
@@ -65,14 +66,54 @@ Deno.serve(async (req) => {
       catch (_) { mapping = fallbackMapping(parsed.headers).mapping; }
     }
   }
+  // 1. Apply mapping → raw mapped fields per row.
+  const mapped = parsed.rows.map(r => applyMapping(parsed.headers, r, mapping));
+
+  // 2. AI normalize in batches of 20, max 4 in flight. Per-batch fallback so
+  //    an OpenAI failure on one batch doesn't take down the whole ingest.
+  let normalized: NormalizedRow[];
+  console.log('[ingest] AI key set?', !!Deno.env.get('OPENAI_API_KEY'), 'ai_disabled?', body.ai_disabled, 'mapped count:', mapped.length);
+  if (body.ai_disabled || !Deno.env.get('OPENAI_API_KEY')) {
+    console.log('[ingest] taking fallback path');
+    normalized = mapped.map(m => ({
+      company: m.company || null, contact_name: m.contact_name || null,
+      phone: m.phone || null, email: m.email || null,
+      address: m.address || null, city: m.city || null,
+      state: m.state || null, zip: m.zip || null,
+      confidence: 'high',
+    }));
+  } else {
+    const batches: Record<string, string>[][] = [];
+    for (let i = 0; i < mapped.length; i += 20) batches.push(mapped.slice(i, i + 20) as Record<string, string>[]);
+    const results: NormalizedRow[][] = new Array(batches.length);
+    let idx = 0;
+    async function runBatch(b: number) {
+      try { results[b] = await aiNormalizeRows(batches[b]); }
+      catch (e) {
+        console.log('[ingest] batch', b, 'fell back due to:', (e as Error).message);
+        results[b] = batches[b].map(m => ({
+          company: m.company || null, contact_name: m.contact_name || null,
+          phone: m.phone || null, email: m.email || null,
+          address: m.address || null, city: m.city || null,
+          state: m.state || null, zip: m.zip || null,
+          confidence: 'high',
+        }));
+      }
+    }
+    const workers = Array(Math.min(4, batches.length)).fill(0).map(async () => {
+      while (idx < batches.length) { const my = idx++; await runBatch(my); }
+    });
+    await Promise.all(workers);
+    normalized = results.flat();
+  }
+
+  // 3. Bucket + collect inserts using the normalized values.
   const totals = { assigned: 0, needs_review: 0, flagged_out_of_area: 0, geocode_failed: 0 };
   const insertRows: Array<Record<string, unknown>> = [];
-
-  for (const row of parsed.rows) {
-    const fields = applyMapping(parsed.headers, row, mapping);
+  for (const n of normalized) {
     const bucket: Bucket = bucketFor({
-      hasCompany: !!fields.company,
-      hasAddress: !!fields.address,
+      hasCompany: !!n.company, hasAddress: !!n.address,
+      aiConfidence: n.confidence,
       geocodeOk: false,    // Task 8 will set this
       areaMatch: null,      // Task 9 will set this
     });
@@ -80,15 +121,14 @@ Deno.serve(async (req) => {
     insertRows.push({
       campaign_id: body.campaign_id,
       bakery_id: null,
-      company: fields.company || '(unknown)',
-      contact_name: fields.contact_name || null,
-      phone: fields.phone || null,
-      email: fields.email || null,
-      address: fields.address || '(unknown)',
-      city: fields.city || null, state: fields.state || null, zip: fields.zip || null,
+      company: n.company || '(unknown)',
+      contact_name: n.contact_name,
+      phone: n.phone, email: n.email,
+      address: n.address || '(unknown)',
+      city: n.city, state: n.state, zip: n.zip,
       lat: null, lon: null,
       assignment_status: bucket,
-      legacy_id: await legacyId(fields.company, fields.address),
+      legacy_id: await legacyId(n.company || '', n.address || ''),
       customizations: {},
     });
   }
@@ -111,5 +151,5 @@ Deno.serve(async (req) => {
     if (error) return jsonResponse({ error: 'database_error', detail: error.message }, 500);
   }
 
-  return jsonResponse({ totals, sample_issues: [], mapping_used: mapping });
+  return jsonResponse({ totals, sample_issues: [], mapping_used: mapping, _debug_normalized: normalized });
 });
