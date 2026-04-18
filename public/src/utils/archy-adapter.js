@@ -113,13 +113,15 @@
       };
 
       const depots = (depotsByBakery[bakery.id] || []).map(d => ({
-        name: d.name, addr: d.address, lat: d.lat, lon: d.lon,
+        id: d.id, name: d.name, addr: d.address, lat: d.lat, lon: d.lon,
       }));
 
       const savedRoute = routes.find(r => r.delivery_area_id === area.id);
 
       if (savedRoute) {
-        ROUTE_DATA[key] = remapSavedRoute(savedRoute.data);
+        // Saved route was serialized before multi-tenant depot ids existed; overlay
+        // the authoritative depot list (with ids) so DepotManager can edit them.
+        ROUTE_DATA[key] = { ...remapSavedRoute(savedRoute.data), depots };
       } else {
         const stops = matchingRecips.map(r => recipientToStop(r, bakery.name));
         ROUTE_DATA[key] = {
