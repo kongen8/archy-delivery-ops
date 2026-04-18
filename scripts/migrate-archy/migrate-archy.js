@@ -157,6 +157,11 @@ async function migrateRecipients(routeData, campaign, bakeries) {
             lat: s.lt,
             lon: s.ln,
             assignment_status: 'assigned',
+            // legacy_region lets the adapter filter by original region without
+            // relying on convex-hull point-in-polygon (which drops ~2% of stops
+            // on hull boundaries due to floating-point). PIP stays as the path
+            // for non-legacy recipients (future customer uploads).
+            customizations: { legacy_region: region },
           });
         }
       }
@@ -165,9 +170,13 @@ async function migrateRecipients(routeData, campaign, bakeries) {
   const BATCH = 500;
   for (let i = 0; i < rows.length; i += BATCH) {
     const batch = rows.slice(i, i + BATCH);
+    // ignoreDuplicates was `true` — but we need UPDATE-on-conflict so re-runs
+    // can backfill `customizations.legacy_region` onto rows already inserted.
+    // The row shape comes from `routes.js` which is the source of truth, so
+    // overwriting is idempotent.
     const { error } = await sb
       .from('recipients')
-      .upsert(batch, { onConflict: 'campaign_id,legacy_id', ignoreDuplicates: true });
+      .upsert(batch, { onConflict: 'campaign_id,legacy_id' });
     if (error) throw error;
     console.log(`  inserted recipients ${i + 1}–${i + batch.length}`);
   }

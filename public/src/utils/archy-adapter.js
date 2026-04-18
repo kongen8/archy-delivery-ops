@@ -74,11 +74,13 @@
       const bakery = bakeryById.get(area.bakery_id);
       if (!bakery) continue;
       const key = area.name.replace(/ \(migrated\)$/, '');
-      const matchingRecips = recipients.filter(r =>
-        r.bakery_id === bakery.id &&
-        Number.isFinite(r.lat) && Number.isFinite(r.lon) &&
-        pointInGeometry(r.lon, r.lat, area.geometry)
-      );
+      const matchingRecips = recipients.filter(r => {
+        if (r.bakery_id !== bakery.id) return false;
+        if (!Number.isFinite(r.lat) || !Number.isFinite(r.lon)) return false;
+        const tag = r.customizations && r.customizations.legacy_region;
+        if (tag) return tag === key;
+        return pointInGeometry(r.lon, r.lat, area.geometry);
+      });
       if (!matchingRecips.length) continue;
 
       REGIONS[key] = {
