@@ -4,6 +4,7 @@ import { legacyId } from './legacy_id.ts';
 import { bucketFor, Bucket } from './bucket.ts';
 import { aiSuggestMapping, fallbackMapping, aiNormalizeRows } from './ai.ts';
 import type { NormalizedRow } from './ai.ts';
+import { geocodeRows } from './geocode.ts';
 
 interface IngestRequest {
   campaign_id: string;
@@ -104,14 +105,23 @@ Deno.serve(async (req) => {
     normalized = results.flat();
   }
 
-  // 3. Bucket + collect inserts using the normalized values.
+  // 3. Geocode every row in one batched pass (cache lookup + Mapbox for misses).
+  //    Throws only if MAPBOX_SECRET_TOKEN is missing — individual lookup
+  //    failures yield `null` so they fall into the geocode_failed bucket.
+  const geocodes = await geocodeRows(sb, normalized.map(n => ({
+    address: n.address, city: n.city, state: n.state, zip: n.zip,
+  })));
+
+  // 4. Bucket + collect inserts using the normalized + geocoded values.
   const totals = { assigned: 0, needs_review: 0, flagged_out_of_area: 0, geocode_failed: 0 };
   const insertRows: Array<Record<string, unknown>> = [];
-  for (const n of normalized) {
+  for (let i = 0; i < normalized.length; i++) {
+    const n = normalized[i];
+    const g = geocodes[i];
     const bucket: Bucket = bucketFor({
       hasCompany: !!n.company, hasAddress: !!n.address,
       aiConfidence: n.confidence,
-      geocodeOk: false,    // Task 8 will set this
+      geocodeOk: !!g,
       areaMatch: null,      // Task 9 will set this
     });
     totals[bucket]++;
@@ -123,7 +133,7 @@ Deno.serve(async (req) => {
       phone: n.phone, email: n.email,
       address: n.address || '(unknown)',
       city: n.city, state: n.state, zip: n.zip,
-      lat: null, lon: null,
+      lat: g?.lat ?? null, lon: g?.lon ?? null,
       assignment_status: bucket,
       legacy_id: await legacyId(n.company || '', n.address || ''),
       customizations: {},

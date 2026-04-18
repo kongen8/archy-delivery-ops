@@ -18,13 +18,16 @@ function b64(text: string): string {
   return btoa(text);
 }
 
-Deno.test('ingest skeleton: 3-row CSV inserts as geocode_failed (no geocode yet)', async () => {
+Deno.test('ingest skeleton: 3-row CSV inserts and totals sum to 3', async () => {
   let cust, camp;
   try {
     ({ data: cust } = await sb.from('customers').insert({ name: 'TEST_cust_' + Math.random(), access_token: crypto.randomUUID() }).select('*').single());
     ({ data: camp } = await sb.from('campaigns').insert({ customer_id: cust!.id, name: 'TEST_camp', status: 'draft' }).select('*').single());
 
-    const csv = 'Company,Address\nAcme,123 Main St\nWidgets,45 Oak Ave\nGears,789 Pine Rd\n';
+    // Vague addresses — Mapbox may or may not geocode them; either way the
+    // bucket is flagged_out_of_area or geocode_failed (never assigned, since
+    // no bakery polygon covers them yet — Task 9 wires area match).
+    const csv = 'Company,Address\nAcme,zzznotanaddressxyz1\nWidgets,zzznotanaddressxyz2\nGears,zzznotanaddressxyz3\n';
     const res = await fetch(fnUrl, {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
@@ -38,8 +41,8 @@ Deno.test('ingest skeleton: 3-row CSV inserts as geocode_failed (no geocode yet)
     const json = await res.json();
 
     assertEquals(res.status, 200);
-    // With hasCompany=true, hasAddress=true, geocodeOk=false → 'geocode_failed'.
-    assertEquals(json.totals.geocode_failed, 3);
+    const sum = json.totals.assigned + json.totals.needs_review + json.totals.flagged_out_of_area + json.totals.geocode_failed;
+    assertEquals(sum, 3, 'every row should land in some bucket');
     const { data: recips } = await sb.from('recipients').select('*').eq('campaign_id', camp!.id);
     assertEquals(recips!.length, 3);
     assert(recips!.every(r => r.legacy_id && r.legacy_id.length === 64));
@@ -120,6 +123,52 @@ Deno.test('ai mapping: omitting column_mapping triggers AI (or fallback) and sti
     assertEquals(json.mapping_used['Street Address'], 'address');
     const { data: recips } = await sb.from('recipients').select('*').eq('campaign_id', camp!.id);
     assertEquals(recips!.length, 2);
+  } finally {
+    if (camp?.id) {
+      await sb.from('recipients').delete().eq('campaign_id', camp.id);
+      await sb.from('campaigns').delete().eq('id', camp.id);
+    }
+    if (cust?.id) await sb.from('customers').delete().eq('id', cust.id);
+  }
+});
+
+Deno.test('geocoding: real address gets lat/lon and lands in geocode_cache', async () => {
+  let cust, camp;
+  try {
+    ({ data: cust } = await sb.from('customers').insert({ name: 'TEST_cust_' + Math.random(), access_token: crypto.randomUUID() }).select('*').single());
+    ({ data: camp } = await sb.from('campaigns').insert({ customer_id: cust!.id, name: 'TEST_camp', status: 'draft' }).select('*').single());
+    // We only assert the positive path. Mapbox's fuzzy matcher is too lenient
+    // to reliably produce a "no result" — even gibberish often returns a
+    // partial place hit. The failure path (lat=null, status=geocode_failed)
+    // is exercised in geocode.ts unit logic, not here.
+    const csv = 'Company,Address,City,State,Zip\n'
+      + 'Momofuku,171 1st Ave,New York,NY,10003\n';
+    const res = await fetch(fnUrl, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaign_id: camp!.id,
+        file_b64: btoa(csv),
+        file_type: 'csv',
+        column_mapping: { Company: 'company', Address: 'address', City: 'city', State: 'state', Zip: 'zip' },
+      }),
+    });
+    await res.json();
+    assertEquals(res.status, 200);
+    const { data: recips } = await sb.from('recipients').select('*').eq('campaign_id', camp!.id);
+    assertEquals(recips!.length, 1);
+    const realRow = recips![0];
+    assert(realRow.lat !== null && realRow.lon !== null, 'real address should have lat/lon');
+    // Task 9 still pending → no bakery polygon covers NYC, so the best we can
+    // assert is that the row got past the geocode gate.
+    assert(realRow.assignment_status !== 'geocode_failed');
+
+    // Cache write: confirm geocode_cache has an entry for the normalized form
+    // of the real address. (Cache key matches geocode.ts normalizeAddress().)
+    const { data: cached } = await sb.from('geocode_cache')
+      .select('*')
+      .eq('normalized_address', '171 1st ave, new york, ny, 10003');
+    assert(cached && cached.length === 1, 'real address should be cached');
   } finally {
     if (camp?.id) {
       await sb.from('recipients').delete().eq('campaign_id', camp.id);
