@@ -1,0 +1,12 @@
+{
+  "name": "admin-db-test",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test admin-db.test.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5"
+  }
+}
