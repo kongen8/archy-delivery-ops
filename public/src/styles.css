@@ -76,3 +76,20 @@ body{background:#f8f7f4}
      - The shadow's translateX(-50%) is untouched */
 .cake-map-shell.cake-moving .cake-bobber{animation:none!important;transform:none!important}
 @media (max-width:700px){.cake-map-shell{height:calc(100vh - 280px);min-height:340px;border-radius:10px;border-width:2px;box-shadow:3px 3px 0 #4e342e}}
+
+/* ===== Plan 2 admin styles ===== */
+.btn-primary{background:#111827;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-weight:500;font-size:13px;cursor:pointer}
+.btn-primary:hover{background:#1f2937}
+.btn-primary:disabled{background:#9ca3af;cursor:not-allowed}
+.btn-ghost{background:#fff;color:#374151;border:1px solid #e5e7eb;padding:7px 12px;border-radius:6px;font-size:13px;cursor:pointer}
+.btn-ghost:hover{background:#f9fafb}
+.btn-link{background:transparent;color:#2563eb;border:0;padding:6px 8px;font-size:13px;cursor:pointer}
+.btn-link:hover{text-decoration:underline}
+.admin-row{display:flex;gap:12px;align-items:center;padding:12px 14px;border:1px solid #e5e7eb;border-radius:6px;background:#fff}
+.admin-sidebar{width:360px;flex:none;padding:20px;border-right:1px solid #e5e7eb;overflow-y:auto;background:#fff}
+.admin-sidebar h4{margin:0 0 8px;font-size:13px;font-weight:600}
+.admin-field{display:block;margin-bottom:10px;font-size:12px}
+.admin-field label{display:block;color:#6b7280;margin-bottom:3px;font-weight:500}
+.admin-field input,.admin-field textarea{width:100%;padding:6px 10px;border:1px solid #d1d5db;border-radius:4px;font-size:13px;font-family:inherit;box-sizing:border-box}
+.admin-section{border-top:1px solid #f3f4f6;padding-top:14px;margin-top:14px}
+

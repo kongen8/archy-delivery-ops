@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Profile picker — layout options</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f3f4f6;
+      color: #111827;
+      margin: 0;
+      padding: 32px 24px;
+      line-height: 1.45;
+    }
+    .page { max-width: 1200px; margin: 0 auto; }
+    h1 { font-size: 24px; margin: 0 0 6px; }
+    .subtitle { color: #6b7280; margin: 0 0 28px; font-size: 14px; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-image {
+      background: #f9fafb;
+      padding: 16px;
+      border-bottom: 1px solid #e5e7eb;
+      min-height: 260px;
+    }
+    .card-body { padding: 16px 18px 20px; }
+    .card-body h3 { margin: 0 0 6px; font-size: 16px; }
+    .card-body p { margin: 0; font-size: 13px; color: #4b5563; }
+    .card-body code { background: #f3f4f6; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+
+    .mockup {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+    .mockup-header {
+      padding: 8px 12px;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .mockup-header.dark {
+      background: #111827;
+      color: #fff;
+      border-bottom: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .mockup-body { padding: 16px; position: relative; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>How should the profile picker feel?</h1>
+    <p class="subtitle">Since auth is off for now, this is just "which hat are you wearing." Pick a layout.</p>
+
+    <div class="cards">
+
+      <!-- A -->
+      <div class="card">
+        <div class="card-image">
+          <div class="mockup">
+            <div class="mockup-header">Landing page at /</div>
+            <div class="mockup-body">
+              <div style="font-weight:600;font-size:14px;margin-bottom:12px">Choose a profile</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+                <div style="border:1px solid #e5e7eb;border-radius:6px;padding:12px">
+                  <div style="font-size:11px;text-transform:uppercase;color:#6b7280;letter-spacing:0.05em;margin-bottom:8px">Admin</div>
+                  <div style="padding:10px;background:#111827;color:#fff;border-radius:4px;text-align:center;font-size:12px;font-weight:500">Enter admin</div>
+                </div>
+                <div style="border:1px solid #e5e7eb;border-radius:6px;padding:12px">
+                  <div style="font-size:11px;text-transform:uppercase;color:#6b7280;letter-spacing:0.05em;margin-bottom:8px">Bakeries</div>
+                  <div style="display:flex;flex-direction:column;gap:4px">
+                    <div style="padding:6px 8px;background:#f3f4f6;border-radius:4px;font-size:11px">Boho Petite</div>
+                    <div style="padding:6px 8px;background:#f3f4f6;border-radius:4px;font-size:11px">Sweet Lady Jane</div>
+                    <div style="padding:6px 8px;background:#f3f4f6;border-radius:4px;font-size:11px">SmallCakes</div>
+                    <div style="padding:6px 8px;background:#f3f4f6;border-radius:4px;font-size:11px">Roland's</div>
+                  </div>
+                </div>
+                <div style="border:1px solid #e5e7eb;border-radius:6px;padding:12px">
+                  <div style="font-size:11px;text-transform:uppercase;color:#6b7280;letter-spacing:0.05em;margin-bottom:8px">Customers</div>
+                  <div style="display:flex;flex-direction:column;gap:4px">
+                    <div style="padding:6px 8px;background:#f3f4f6;border-radius:4px;font-size:11px">Archy</div>
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top:16px;font-size:11px;color:#9ca3af">Small "Switch profile" link lives in the header of every view.</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <h3>A. Dedicated landing page</h3>
+          <p>Visit <code>/</code> → see three columns (Admin / Bakeries / Customers). Click to enter. Small "Switch profile" in header once inside. Last choice remembered in localStorage so you skip the picker on next visit.</p>
+        </div>
+      </div>
+
+      <!-- B -->
+      <div class="card">
+        <div class="card-image">
+          <div class="mockup">
+            <div class="mockup-header dark">
+              <span>Admin · Bakeries</span>
+              <span style="background:#374151;padding:3px 8px;border-radius:4px;font-size:11px">Admin ▾</span>
+            </div>
+            <div class="mockup-body">
+              <div style="font-weight:600;font-size:14px;margin-bottom:12px">Bakeries</div>
+              <div style="border:1px solid #e5e7eb;border-radius:4px;padding:10px;margin-bottom:8px;font-size:12px">Boho Petite · 4 depots · SF core</div>
+              <div style="border:1px solid #e5e7eb;border-radius:4px;padding:10px;margin-bottom:8px;font-size:12px">Sweet Lady Jane · 2 depots · LA</div>
+              <div style="position:absolute;top:36px;right:16px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.08);padding:6px;font-size:11px;width:180px">
+                <div style="padding:6px 8px;background:#f3f4f6;border-radius:3px;margin-bottom:3px">Admin</div>
+                <div style="padding:6px 8px;color:#6b7280;border-top:1px solid #f3f4f6;margin-top:4px">Bakeries</div>
+                <div style="padding:4px 8px;font-size:10px;color:#6b7280">Boho Petite</div>
+                <div style="padding:4px 8px;font-size:10px;color:#6b7280">Sweet Lady Jane</div>
+                <div style="padding:6px 8px;color:#6b7280;border-top:1px solid #f3f4f6;margin-top:4px">Customers</div>
+                <div style="padding:4px 8px;font-size:10px;color:#6b7280">Archy</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <h3>B. Header dropdown switcher (no landing page)</h3>
+          <p>App mounts directly into last-used view (defaults to Admin). A dropdown in the top-right header lets you switch profile any time. Fewer clicks to switch; no separate "home." First-time visitors land on Admin.</p>
+        </div>
+      </div>
+
+      <!-- C -->
+      <div class="card">
+        <div class="card-image">
+          <div class="mockup">
+            <div class="mockup-header dark">
+              <span>Admin</span>
+              <span style="background:#374151;padding:3px 8px;border-radius:4px;font-size:11px">Admin ▾</span>
+            </div>
+            <div class="mockup-body">
+              <div style="font-weight:600;font-size:14px;margin-bottom:12px">Bakeries</div>
+              <div style="border:1px solid #e5e7eb;border-radius:4px;padding:10px;margin-bottom:8px;font-size:12px;display:flex;justify-content:space-between;align-items:center">
+                <span>Boho Petite · 4 depots · SF core</span>
+                <span style="color:#2563eb;font-size:11px;cursor:pointer">View as bakery →</span>
+              </div>
+              <div style="border:1px solid #e5e7eb;border-radius:4px;padding:10px;margin-bottom:8px;font-size:12px;display:flex;justify-content:space-between;align-items:center">
+                <span>Sweet Lady Jane · 2 depots · LA</span>
+                <span style="color:#2563eb;font-size:11px;cursor:pointer">View as bakery →</span>
+              </div>
+              <div style="margin-top:16px;padding:10px;background:#eff6ff;border-radius:4px;font-size:11px;color:#1e40af">
+                <strong>Admin-only shortcut:</strong> "View as bakery" / "View as customer" links on each row jump you into that profile in one click.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <h3>C. Admin-as-home + inline "view as" links</h3>
+          <p>Same dropdown as B, PLUS every bakery/customer row in the admin list has a "View as →" link that jumps you into that profile's view. Makes admin the natural testing console: create a bakery, draw polygon, click "View as" to see exactly what that bakery will see.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

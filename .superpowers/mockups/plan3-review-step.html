@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Plan 3 — Step 3: Review buckets</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px;background:#f3f4f6;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;color:#111827}
+  h1{font-size:22px;font-weight:700;margin:0 0 6px}
+  .subtitle{color:#6b7280;font-size:14px;margin:0 0 28px;max-width:900px}
+  .cards{display:grid;grid-template-columns:1fr;gap:24px;max-width:1100px;margin:0 auto}
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}
+  .card-image{padding:0;background:#f9fafb;border-bottom:1px solid #e5e7eb}
+  .card-body{padding:18px 22px}
+  .card-body h3{margin:0 0 8px;font-size:16px;font-weight:600}
+  .card-body p{margin:0;font-size:13px;color:#6b7280;line-height:1.6}
+  code{background:#f3f4f6;padding:1px 5px;border-radius:3px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+  .header{max-width:1100px;margin:0 auto 28px}
+  .recommended{color:#2563eb;font-size:11px;font-weight:600;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Step 3 of the wizard — review buckets</h1>
+  <p class="subtitle">After the file is parsed and columns are confirmed, the edge function classifies every row into one of four buckets. The customer needs to see the breakdown, fix anything fixable, then finalize. Two layouts to choose from — pick the one that better matches how you'd want to triage 200 rows.</p>
+</div>
+
+<div class="cards">
+
+  <!-- A: Tabbed buckets -->
+  <div class="card">
+    <div class="card-image">
+      <div style="display:flex;height:440px;background:#fff">
+        <!-- progress sidebar -->
+        <div style="width:160px;background:#f9fafb;border-right:1px solid #e5e7eb;padding:18px 14px;font-size:11px;color:#6b7280">
+          <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:14px;font-weight:600">Upload · Q3 2026</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;color:#10b981"><span style="width:18px;height:18px;border-radius:50%;background:#10b981;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600">✓</span><span>File</span></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;color:#10b981"><span style="width:18px;height:18px;border-radius:50%;background:#10b981;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600">✓</span><span>Columns</span></div>
+          <div style="display:flex;align-items:center;gap:8px;color:#111;font-weight:600"><span style="width:18px;height:18px;border-radius:50%;background:#2563eb;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600">3</span><span>Review</span></div>
+        </div>
+        <!-- main -->
+        <div style="flex:1;padding:18px 22px;display:flex;flex-direction:column">
+          <div style="font-size:14px;font-weight:600;color:#111;margin-bottom:4px">Review &amp; finalize</div>
+          <div style="font-size:11px;color:#6b7280;margin-bottom:12px">218 rows ingested. 12 need your attention.</div>
+
+          <!-- bucket tabs -->
+          <div style="display:flex;gap:8px;border-bottom:1px solid #e5e7eb;padding-bottom:0;margin-bottom:14px">
+            <div style="padding:8px 14px;font-size:11px;color:#6b7280;border-bottom:2px solid transparent">Assigned · 198</div>
+            <div style="padding:8px 14px;font-size:11px;color:#7c3aed;font-weight:600;border-bottom:2px solid #7c3aed">Needs review · 8</div>
+            <div style="padding:8px 14px;font-size:11px;color:#6b7280">Out of area · 10</div>
+            <div style="padding:8px 14px;font-size:11px;color:#6b7280">Geocode failed · 2</div>
+          </div>
+
+          <!-- needs_review row examples -->
+          <div style="flex:1;background:#fafafa;border:1px solid #f3f4f6;border-radius:6px;padding:10px;overflow:hidden">
+            <div style="background:#fff;border:1px solid #e9d5ff;border-radius:6px;padding:10px;margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <div style="font-size:12px;font-weight:600;color:#111">Acme Dental Group</div>
+                <div style="display:flex;gap:6px">
+                  <div style="padding:3px 10px;font-size:10px;background:#10b981;color:#fff;border-radius:3px;font-weight:500">✓ Accept AI fix</div>
+                  <div style="padding:3px 10px;font-size:10px;border:1px solid #d1d5db;color:#374151;border-radius:3px">Edit</div>
+                  <div style="padding:3px 10px;font-size:10px;color:#9ca3af;border:1px solid #e5e7eb;border-radius:3px">Skip</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:10px">
+                <div><div style="color:#9ca3af;margin-bottom:2px">YOU UPLOADED</div><div style="color:#374151">"330 mainst san franc CA"</div></div>
+                <div><div style="color:#7c3aed;margin-bottom:2px">AI SUGGESTS</div><div style="color:#374151">330 Main St, San Francisco, CA</div></div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid #e9d5ff;border-radius:6px;padding:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <div style="font-size:12px;font-weight:600;color:#111">Westside Smiles</div>
+                <div style="display:flex;gap:6px">
+                  <div style="padding:3px 10px;font-size:10px;background:#10b981;color:#fff;border-radius:3px;font-weight:500">✓ Accept</div>
+                  <div style="padding:3px 10px;font-size:10px;border:1px solid #d1d5db;color:#374151;border-radius:3px">Edit</div>
+                  <div style="padding:3px 10px;font-size:10px;color:#9ca3af;border:1px solid #e5e7eb;border-radius:3px">Skip</div>
+                </div>
+              </div>
+              <div style="font-size:10px;color:#6b7280">Address split: <span style="color:#374151">410 Lincoln Way</span> · <span style="color:#374151">SF</span> · <span style="color:#374151">CA</span> · <span style="color:#374151">94122</span></div>
+            </div>
+          </div>
+
+          <!-- footer -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+            <div style="font-size:11px;color:#6b7280">‹ Back to columns</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div style="font-size:11px;color:#6b7280">198 will be delivered. 12 still need attention.</div>
+              <div style="padding:6px 14px;font-size:11px;background:#2563eb;color:#fff;border-radius:4px;font-weight:500">Finalize campaign</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · Tabbed buckets <span class="recommended">RECOMMENDED</span></h3>
+      <p>One bucket at a time. Tabs at top show counts; clicking a tab swaps the row list. Each row is a standalone card with the actions visible. <code>needs_review</code> shows side-by-side raw vs AI-cleaned. <code>geocode_failed</code> shows an inline address editor + retry button. <code>flagged_out_of_area</code> shows the address + a "tell admin" copy-link. Stays focused — you triage one bucket at a time and the chrome doesn't compete with the rows.</p>
+    </div>
+  </div>
+
+  <!-- B: All buckets stacked -->
+  <div class="card">
+    <div class="card-image">
+      <div style="display:flex;height:440px;background:#fff">
+        <div style="width:160px;background:#f9fafb;border-right:1px solid #e5e7eb;padding:18px 14px;font-size:11px;color:#6b7280">
+          <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:14px;font-weight:600">Upload · Q3 2026</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;color:#10b981"><span style="width:18px;height:18px;border-radius:50%;background:#10b981;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600">✓</span><span>File</span></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;color:#10b981"><span style="width:18px;height:18px;border-radius:50%;background:#10b981;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600">✓</span><span>Columns</span></div>
+          <div style="display:flex;align-items:center;gap:8px;color:#111;font-weight:600"><span style="width:18px;height:18px;border-radius:50%;background:#2563eb;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600">3</span><span>Review</span></div>
+        </div>
+        <div style="flex:1;padding:18px 22px;display:flex;flex-direction:column">
+          <div style="font-size:14px;font-weight:600;color:#111;margin-bottom:4px">Review &amp; finalize</div>
+          <div style="font-size:11px;color:#6b7280;margin-bottom:14px">218 rows ingested. Scroll through buckets, fix what you can, finalize.</div>
+
+          <!-- summary pills -->
+          <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+            <div style="padding:4px 12px;font-size:11px;background:#dcfce7;color:#15803d;border-radius:999px;font-weight:500">198 assigned</div>
+            <div style="padding:4px 12px;font-size:11px;background:#f3e8ff;color:#7c3aed;border-radius:999px;font-weight:500">8 needs review</div>
+            <div style="padding:4px 12px;font-size:11px;background:#fef3c7;color:#b45309;border-radius:999px;font-weight:500">10 out of area</div>
+            <div style="padding:4px 12px;font-size:11px;background:#fee2e2;color:#dc2626;border-radius:999px;font-weight:500">2 geocode failed</div>
+          </div>
+
+          <!-- stacked sections -->
+          <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:8px">
+            <div style="background:#fafafa;border:1px solid #f3f4f6;border-radius:6px">
+              <div style="padding:10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f3f4f6">
+                <div style="font-size:12px;font-weight:600;color:#7c3aed">▾ Needs review (8)</div>
+                <div style="font-size:10px;color:#9ca3af">Click each to confirm AI fix or edit</div>
+              </div>
+              <div style="padding:8px 10px">
+                <div style="font-size:11px;color:#374151;margin-bottom:4px">Acme Dental Group · "330 mainst san franc CA" → 330 Main St, SF, CA</div>
+                <div style="font-size:11px;color:#374151;margin-bottom:4px">Westside Smiles · split into address/city/state/zip</div>
+                <div style="font-size:11px;color:#9ca3af">+ 6 more</div>
+              </div>
+            </div>
+            <div style="background:#fafafa;border:1px solid #f3f4f6;border-radius:6px">
+              <div style="padding:10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f3f4f6">
+                <div style="font-size:12px;font-weight:600;color:#b45309">▸ Out of area (10)</div>
+                <div style="font-size:10px;color:#9ca3af">Outside any bakery's polygon</div>
+              </div>
+            </div>
+            <div style="background:#fafafa;border:1px solid #f3f4f6;border-radius:6px">
+              <div style="padding:10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f3f4f6">
+                <div style="font-size:12px;font-weight:600;color:#dc2626">▸ Geocode failed (2)</div>
+                <div style="font-size:10px;color:#9ca3af">Edit and retry</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+            <div style="font-size:11px;color:#6b7280">‹ Back to columns</div>
+            <div style="padding:6px 14px;font-size:11px;background:#2563eb;color:#fff;border-radius:4px;font-weight:500">Finalize campaign</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · All buckets stacked (collapsible)</h3>
+      <p>Summary pills at top, each bucket is a collapsible section underneath. You can see all four totals at a glance and expand the ones that matter. Closer to the spec's original "buckets shown as collapsible sections" wording. Slightly noisier when most rows need attention; less focused triage flow.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

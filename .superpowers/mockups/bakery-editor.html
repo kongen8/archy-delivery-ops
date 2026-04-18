@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bakery editor — layout options</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f3f4f6;
+      color: #111827;
+      margin: 0;
+      padding: 32px 24px;
+      line-height: 1.45;
+    }
+    .page { max-width: 1400px; margin: 0 auto; }
+    h1 { font-size: 24px; margin: 0 0 6px; }
+    .subtitle { color: #6b7280; margin: 0 0 28px; font-size: 14px; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    .card-title {
+      padding: 14px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+    .card-title h3 { margin: 0 0 4px; font-size: 16px; }
+    .card-title p { margin: 0; font-size: 13px; color: #4b5563; }
+    .card-body { padding: 20px; }
+
+    /* Mockup frame (browser chrome) */
+    .frame {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .frame-header {
+      background: #111827;
+      color: #fff;
+      padding: 8px 14px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .frame-crumbs { color: #9ca3af; font-size: 11px; margin-left: 8px; }
+    .pill {
+      background: #374151;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    /* Fake map look */
+    .map {
+      background:
+        linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+      position: relative;
+    }
+    .map-grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+    .polygon {
+      position: absolute;
+      background: rgba(37,99,235,0.2);
+      border: 2px solid #2563eb;
+      border-radius: 4px;
+    }
+    .depot-pin {
+      position: absolute;
+      width: 20px; height: 20px;
+      background: #dc2626;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      transform: translate(-50%, -50%);
+    }
+    .draw-toolbar {
+      position: absolute; top: 12px; left: 12px;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+      display: flex; flex-direction: column;
+      padding: 4px;
+      gap: 2px;
+    }
+    .tool {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      border-radius: 3px;
+      color: #374151;
+    }
+    .tool.active { background: #eff6ff; color: #2563eb; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 12px;
+    }
+    .form-row label { color: #6b7280; }
+    .form-row input {
+      padding: 4px 8px;
+      border: 1px solid #e5e7eb;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+
+    /* Option-specific styles */
+    .opt-a-wrap { display: grid; grid-template-columns: 320px 1fr; height: 420px; }
+    .opt-a-side { padding: 14px; border-right: 1px solid #e5e7eb; overflow-y: auto; font-size: 12px; }
+    .opt-a-side h4 { margin: 0 0 8px; font-size: 13px; }
+    .opt-a-side .section { margin-bottom: 14px; }
+
+    .opt-b-steps {
+      display: flex;
+      padding: 8px 14px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 12px;
+      gap: 16px;
+      background: #f9fafb;
+    }
+    .step { color: #9ca3af; display: flex; align-items: center; gap: 5px; }
+    .step.active { color: #2563eb; font-weight: 500; }
+    .step-num {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #e5e7eb; color: #6b7280;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+    }
+    .step.active .step-num { background: #2563eb; color: #fff; }
+    .step.done .step-num { background: #10b981; color: #fff; }
+    .step.done { color: #111827; }
+
+    .opt-c-header {
+      display: grid; grid-template-columns: 1fr auto; gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid #e5e7eb;
+      align-items: center;
+    }
+    .btn-primary {
+      background: #111827; color: #fff; border: 0;
+      padding: 8px 16px; border-radius: 4px;
+      font-size: 12px; font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-ghost {
+      background: transparent; color: #6b7280; border: 1px solid #e5e7eb;
+      padding: 7px 14px; border-radius: 4px; font-size: 12px;
+      cursor: pointer;
+    }
+
+    .depot-list {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .depot-item {
+      padding: 6px 8px;
+      background: #f9fafb;
+      border-radius: 4px;
+      font-size: 11px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .depot-item .tag {
+      background: #dc2626; color: #fff;
+      padding: 1px 6px; border-radius: 10px;
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>How should the "new / edit bakery" screen feel?</h1>
+    <p class="subtitle">This is used constantly — onboarding a new bakery, tweaking a polygon, adding a depot. Pick a layout.</p>
+
+    <div class="cards">
+
+      <!-- A: Single-page side-by-side -->
+      <div class="card">
+        <div class="card-title">
+          <h3>A. Single-page editor — sidebar form + live map</h3>
+          <p>Bakery info and depot list on the left, full-height map on the right. Polygons and depots drawn on the same map, everything edited in place. One "Save" at the top-right. Works for both creating and editing.</p>
+        </div>
+        <div class="card-body">
+          <div class="frame">
+            <div class="frame-header">
+              <div>
+                <strong>Admin</strong>
+                <span class="frame-crumbs">› Bakeries › Boho Petite</span>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <button class="btn-ghost">Cancel</button>
+                <button class="btn-primary">Save bakery</button>
+              </div>
+            </div>
+            <div class="opt-a-wrap">
+              <div class="opt-a-side">
+                <div class="section">
+                  <h4>Bakery</h4>
+                  <div class="form-row"><label>Name</label><input value="Boho Petite"></div>
+                  <div class="form-row"><label>Email</label><input value="ops@boho.com"></div>
+                  <div class="form-row"><label>Phone</label><input value="(415) 555-0110"></div>
+                </div>
+                <div class="section">
+                  <h4>Delivery areas (2)</h4>
+                  <div class="depot-list">
+                    <div class="depot-item"><span>SF core</span><span style="color:#2563eb">edit</span></div>
+                    <div class="depot-item"><span>South Bay</span><span style="color:#2563eb">edit</span></div>
+                  </div>
+                  <div style="margin-top:6px;color:#2563eb;font-size:11px">+ Draw new area</div>
+                </div>
+                <div class="section">
+                  <h4>Depots (4)</h4>
+                  <div class="depot-list">
+                    <div class="depot-item"><span>Chestnut St</span><span class="tag">1</span></div>
+                    <div class="depot-item"><span>Mission St</span><span class="tag">2</span></div>
+                    <div class="depot-item"><span>Palo Alto</span><span class="tag">3</span></div>
+                    <div class="depot-item"><span>San Jose</span><span class="tag">4</span></div>
+                  </div>
+                  <div style="margin-top:6px;color:#2563eb;font-size:11px">+ Add depot</div>
+                </div>
+                <div class="section" style="padding:10px;background:#eff6ff;border-radius:4px;color:#1e40af;font-size:11px">
+                  <strong>Access link:</strong> <code style="font-size:10px">?profile=bakery:a7e…</code> · <span style="color:#2563eb;cursor:pointer">Copy</span>
+                </div>
+              </div>
+              <div class="map">
+                <div class="map-grid"></div>
+                <div class="draw-toolbar">
+                  <div class="tool active" title="Polygon">✏️</div>
+                  <div class="tool" title="Rectangle">▭</div>
+                  <div class="tool" title="Circle">◯</div>
+                  <div class="tool" title="Edit">✎</div>
+                  <div class="tool" title="Delete">🗑</div>
+                </div>
+                <div class="polygon" style="top:50px;left:110px;width:220px;height:180px;transform:rotate(-4deg)"></div>
+                <div class="polygon" style="top:240px;left:350px;width:140px;height:110px;border-color:#7c3aed;background:rgba(124,58,237,0.15)"></div>
+                <div class="depot-pin" style="top:120px;left:180px"></div>
+                <div class="depot-pin" style="top:170px;left:260px"></div>
+                <div class="depot-pin" style="top:290px;left:400px"></div>
+                <div class="depot-pin" style="top:320px;left:450px"></div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:14px;font-size:12px;color:#6b7280">
+            <strong>Pros:</strong> Everything visible at once. Fast to tweak. Same screen works for create and edit. <br>
+            <strong>Cons:</strong> Denser; new admins might not know to start with "draw new area."
+          </div>
+        </div>
+      </div>
+
+      <!-- B: Wizard -->
+      <div class="card">
+        <div class="card-title">
+          <h3>B. Multi-step wizard (create only) + simple edit screen</h3>
+          <p>Create new bakery walks through steps: Info → Draw areas → Add depots → Review. Editing an existing bakery uses a flatter version of A. Different UX for create vs edit.</p>
+        </div>
+        <div class="card-body">
+          <div class="frame">
+            <div class="frame-header">
+              <div>
+                <strong>Admin</strong>
+                <span class="frame-crumbs">› New bakery</span>
+              </div>
+              <div><button class="btn-ghost">Cancel</button></div>
+            </div>
+            <div class="opt-b-steps">
+              <div class="step done"><span class="step-num">✓</span>Info</div>
+              <div class="step active"><span class="step-num">2</span>Draw areas</div>
+              <div class="step"><span class="step-num">3</span>Add depots</div>
+              <div class="step"><span class="step-num">4</span>Review</div>
+            </div>
+            <div style="padding:10px 14px;background:#fafafa;font-size:12px;color:#6b7280;border-bottom:1px solid #e5e7eb">
+              Draw one or more polygons covering Boho Petite's delivery area. You can draw rectangles, polygons, or circles. Click "Next" when done.
+            </div>
+            <div class="map" style="height:340px">
+              <div class="map-grid"></div>
+              <div class="draw-toolbar">
+                <div class="tool active">✏️</div>
+                <div class="tool">▭</div>
+                <div class="tool">◯</div>
+                <div class="tool">✎</div>
+              </div>
+              <div class="polygon" style="top:60px;left:140px;width:240px;height:200px"></div>
+            </div>
+            <div style="padding:12px 14px;display:flex;justify-content:space-between;border-top:1px solid #e5e7eb">
+              <button class="btn-ghost">← Back</button>
+              <button class="btn-primary">Next: Add depots →</button>
+            </div>
+          </div>
+          <div style="margin-top:14px;font-size:12px;color:#6b7280">
+            <strong>Pros:</strong> Guided, hand-holds new admins through the order of operations. Less overwhelming. <br>
+            <strong>Cons:</strong> Two UIs to maintain (wizard + edit screen). Friction for admins who know what they're doing. More clicks to tweak a single thing later.
+          </div>
+        </div>
+      </div>
+
+      <!-- C: Map-first full-bleed -->
+      <div class="card">
+        <div class="card-title">
+          <h3>C. Map-first, full-bleed — floating panels</h3>
+          <p>Map takes the entire viewport. Bakery info and depot list live in a small floating panel top-left; draw toolbar floats top-right; save/cancel float bottom-right. Same screen for create/edit.</p>
+        </div>
+        <div class="card-body">
+          <div class="frame">
+            <div class="frame-header">
+              <div><strong>Admin</strong><span class="frame-crumbs">› Bakeries › Boho Petite</span></div>
+              <span class="pill">Admin ▾</span>
+            </div>
+            <div class="map" style="height:460px">
+              <div class="map-grid"></div>
+              <div class="polygon" style="top:70px;left:230px;width:300px;height:220px;transform:rotate(-2deg)"></div>
+              <div class="polygon" style="top:290px;left:520px;width:180px;height:140px;border-color:#7c3aed;background:rgba(124,58,237,0.15)"></div>
+              <div class="depot-pin" style="top:130px;left:320px"></div>
+              <div class="depot-pin" style="top:200px;left:420px"></div>
+              <div class="depot-pin" style="top:330px;left:580px"></div>
+              <div class="depot-pin" style="top:380px;left:650px"></div>
+
+              <!-- Floating info panel -->
+              <div style="position:absolute;top:16px;left:16px;background:#fff;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.15);padding:14px;width:260px;font-size:12px">
+                <div style="font-weight:600;margin-bottom:10px">Boho Petite</div>
+                <div class="form-row" style="grid-template-columns:60px 1fr"><label>Email</label><input value="ops@boho.com" style="font-size:11px"></div>
+                <div class="form-row" style="grid-template-columns:60px 1fr"><label>Phone</label><input value="(415) 555-0110" style="font-size:11px"></div>
+                <div style="margin-top:10px;padding-top:8px;border-top:1px solid #f3f4f6">
+                  <div style="font-size:11px;color:#6b7280;margin-bottom:4px">Depots · 4</div>
+                  <div class="depot-list">
+                    <div class="depot-item" style="font-size:10px">Chestnut St <span class="tag">1</span></div>
+                    <div class="depot-item" style="font-size:10px">Mission St <span class="tag">2</span></div>
+                  </div>
+                  <div style="margin-top:4px;color:#2563eb;font-size:11px;cursor:pointer">+ Add depot</div>
+                </div>
+              </div>
+
+              <!-- Floating draw toolbar (right) -->
+              <div style="position:absolute;top:16px;right:16px;background:#fff;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.15);padding:6px;display:flex;flex-direction:column;gap:4px">
+                <div class="tool active" style="width:32px;height:32px">✏️</div>
+                <div class="tool" style="width:32px;height:32px">▭</div>
+                <div class="tool" style="width:32px;height:32px">◯</div>
+                <div class="tool" style="width:32px;height:32px">✎</div>
+                <div class="tool" style="width:32px;height:32px">🗑</div>
+              </div>
+
+              <!-- Floating actions (bottom-right) -->
+              <div style="position:absolute;bottom:16px;right:16px;display:flex;gap:8px">
+                <button class="btn-ghost" style="background:#fff">Cancel</button>
+                <button class="btn-primary">Save</button>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:14px;font-size:12px;color:#6b7280">
+            <strong>Pros:</strong> Maximum map real estate — critical when drawing large metro areas. Modern mapping-app feel. <br>
+            <strong>Cons:</strong> Floating panel can overlap polygons you want to draw; smaller screens feel cramped. Form fields are easier to miss.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
