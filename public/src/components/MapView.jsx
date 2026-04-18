@@ -71,52 +71,13 @@ function MapView({regionKey,statuses,routeOverrides,depotOverrides}){
     map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
     map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'bottom-right');
 
-    // Pause the cupcake float animation while the user is moving/zooming the map.
-    // Keeps DOM markers visually glued to their lnglat during interaction.
+    // Pause any marker animation while the user is moving/zooming the map.
     const onMoveStart=()=>{
       if(shellRef.current)shellRef.current.classList.add('cake-moving');
-      // #region agent log
-      if(window.__cakeProbe){
-        __cakeAnchorLog(map,shellRef.current,window.__cakeProbe.marker,window.__cakeProbe.stop,'D-movestart');
-      }
-      if(window.__cakeDepotProbe){
-        __cakeAnchorLog(map,shellRef.current,window.__cakeDepotProbe.marker,window.__cakeDepotProbe.stop,'X-movestart');
-      }
-      window.__cakeMidZoomCount=0;
-      // #endregion
     };
     const onMoveEnd=()=>{
       if(shellRef.current)shellRef.current.classList.remove('cake-moving');
-      // #region agent log
-      if(window.__cakeProbe){
-        const p=window.__cakeProbe;
-        __cakeAnchorLog(map,shellRef.current,p.marker,p.stop,'D-moveend');
-        setTimeout(()=>__cakeAnchorLog(map,shellRef.current,window.__cakeProbe&&window.__cakeProbe.marker,window.__cakeProbe&&window.__cakeProbe.stop,'D-moveend+300'),300);
-      }
-      if(window.__cakeDepotProbe){
-        const dp=window.__cakeDepotProbe;
-        __cakeAnchorLog(map,shellRef.current,dp.marker,dp.stop,'X-moveend');
-        setTimeout(()=>__cakeAnchorLog(map,shellRef.current,window.__cakeDepotProbe&&window.__cakeDepotProbe.marker,window.__cakeDepotProbe&&window.__cakeDepotProbe.stop,'X-moveend+300'),300);
-      }
-      // #endregion
     };
-    // #region agent log
-    // Mid-zoom probe for delivery + depot. Logs the first 5 'zoom' firings
-    // after movestart so we can see whether the pedestal and the bobber
-    // each track the projected lnglat correctly during active zoom.
-    const onZoomingProbe=()=>{
-      const cnt=window.__cakeMidZoomCount||0;
-      if(cnt>=5)return;
-      window.__cakeMidZoomCount=cnt+1;
-      if(window.__cakeProbe){
-        __cakeAnchorLog(map,shellRef.current,window.__cakeProbe.marker,window.__cakeProbe.stop,'D-zooming#'+(cnt+1));
-      }
-      if(window.__cakeDepotProbe){
-        __cakeAnchorLog(map,shellRef.current,window.__cakeDepotProbe.marker,window.__cakeDepotProbe.stop,'X-zooming#'+(cnt+1));
-      }
-    };
-    map.on('zoom',onZoomingProbe);
-    // #endregion
     map.on('movestart',onMoveStart);
     map.on('zoomstart',onMoveStart);
     map.on('moveend',onMoveEnd);
@@ -141,13 +102,6 @@ function MapView({regionKey,statuses,routeOverrides,depotOverrides}){
       const raw=Math.pow(2,(z-REF_ZOOM)*SCALE_EXP);
       const s=Math.max(SCALE_MIN,Math.min(SCALE_MAX,raw));
       shellRef.current.style.setProperty('--cake-scale',s.toFixed(4));
-      // #region agent log
-      if(!window.__cakeScaleLogCount)window.__cakeScaleLogCount=0;
-      if(window.__cakeScaleLogCount<20){
-        window.__cakeScaleLogCount++;
-        fetch('http://127.0.0.1:7333/ingest/9665ef98-9b4b-4c13-abf9-412eeeb4ef14',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c27166'},body:JSON.stringify({sessionId:'c27166',runId:'post-fix',hypothesisId:'H10',location:'index.html:applyCakeScale',message:'cake scale written',data:{zoom:+z.toFixed(4),raw:+raw.toFixed(4),scale:+s.toFixed(4),n:window.__cakeScaleLogCount},timestamp:Date.now()})}).catch(()=>{});
-      }
-      // #endregion
     };
     map.on('zoom',applyCakeScale);
     applyCakeScale();
@@ -487,22 +441,6 @@ function MapView({regionKey,statuses,routeOverrides,depotOverrides}){
         const marker=new maplibregl.Marker({element:el,anchor:'bottom',offset:[0,0]})
           .setLngLat([d.stop.ln,d.stop.lt]).setPopup(popup).addTo(map);
         activeMarkersRef.current.set(stopId,{marker,status:d.status,stopNumber:d.stopNumber,color:d.color,co});
-        // #region agent log
-        // Register/refresh the first-active-stop marker as the probe. If the
-        // marker gets rebuilt (status change etc.) this swaps the reference
-        // so later logs don't hold a detached element. Also schedule a few
-        // snapshots across animation phases.
-        if(!window.__cakeProbe || window.__cakeProbe.stop.id===d.stop.id){
-          const wasNew=!window.__cakeProbe;
-          window.__cakeProbe={marker,stop:d.stop};
-          if(wasNew){
-            requestAnimationFrame(()=>__cakeAnchorLog(map,shellRef.current,marker,d.stop,'init-rAF'));
-            setTimeout(()=>__cakeAnchorLog(map,shellRef.current,window.__cakeProbe.marker,window.__cakeProbe.stop,'init-300ms'),300);
-            setTimeout(()=>__cakeAnchorLog(map,shellRef.current,window.__cakeProbe.marker,window.__cakeProbe.stop,'init-1500ms'),1500);
-            setTimeout(()=>__cakeAnchorLog(map,shellRef.current,window.__cakeProbe.marker,window.__cakeProbe.stop,'init-3000ms'),3000);
-          }
-        }
-        // #endregion
       }else{
         existing.marker.setLngLat([d.stop.ln,d.stop.lt]);
         const popup=existing.marker.getPopup();
@@ -532,16 +470,6 @@ function MapView({regionKey,statuses,routeOverrides,depotOverrides}){
       const m=new maplibregl.Marker({element:el,anchor:'bottom',offset:[0,0]})
         .setLngLat([dp.lon,dp.lat]).setPopup(popup).addTo(map);
       depotMarkersRef.current.set(k,m);
-      // #region agent log
-      // Register first depot as a second probe so we see whether depot cakes
-      // have the same pedestal-on-dot behavior as delivery cakes.
-      if(!window.__cakeDepotProbe){
-        const dpStop={id:'depot:'+k,co:dp.name||'depot',ln:dp.lon,lt:dp.lat};
-        window.__cakeDepotProbe={marker:m,stop:dpStop};
-        requestAnimationFrame(()=>__cakeAnchorLog(map,shellRef.current,m,dpStop,'depot-init-rAF'));
-        setTimeout(()=>__cakeAnchorLog(map,shellRef.current,m,dpStop,'depot-init-1500ms'),1500);
-      }
-      // #endregion
     });
   },[renderTick,regionKey,safeDay,safeDrv,mode,data,depotOverrides,statuses]);
 
