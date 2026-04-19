@@ -25,7 +25,7 @@ Let customers attach a per-recipient cake design + box card design to every reci
 Browser (customer profile)              Supabase
 ─────────────────────────────           ──────────────────────────────
 UploadWizard                            campaigns
-  Step 4 · Designs (NEW)                  + default_design jsonb        ← migration 008
+  Step 4 · Designs (NEW)                  + default_design jsonb        ← migration 009
     ├─ default cake slot                recipients.customizations jsonb (existing)
     ├─ default card slot                  → { cake_image_url?, card_image_url? }
     └─ override list
@@ -58,7 +58,7 @@ No new edge functions. No new external services. The existing `ingest-recipients
 - `public/src/components/BoxCardSheet.jsx` (new) — render-only component for the print sheet (uses `@media print` from `styles.css`). Mounted in a hidden div; clicking "Print all box cards" calls `window.print()` after we set a flag that hides everything except this component.
 - `public/src/utils/design.js` (new, pure) — `mergeDesign(campaignDefault, recipientOverride) → { cake_image_url, card_image_url }`. Unit-tested.
 - `public/src/utils/zip-prints.js` (new) — small wrapper around the JSZip vendor lib that fetches every cake image URL, names each entry `<safe-company>__<recipient-id-short>.png`, and triggers a browser download.
-- `supabase/migrations/008_cake_design.sql` (new) — adds the two columns + creates the storage bucket via `INSERT INTO storage.buckets`.
+- `supabase/migrations/009_cake_design.sql` (new) — adds the two columns + creates the storage bucket via `INSERT INTO storage.buckets`.
 
 ### Wizard flow update
 
@@ -244,7 +244,7 @@ Files are named `001_Acme_Dental_Group_a3b1c4f2.png` etc. so the bakery can matc
 | Bakery clicks Print with 0 recipients in the current filter | Button is disabled; tooltip "No box cards to print." |
 | Bakery clicks Download edible prints with some missing cake images | ZIP includes only the recipients with a resolved cake image; UI surfaces "12 of 124 missing — they were skipped." Download still proceeds. |
 | Two customers concurrently edit the same campaign's default_design | Last write wins (the customer profile is shared today). Acceptable per Plan 2 pivot. |
-| Storage bucket missing (migration didn't run) | Cropper Save fails with a 404 from the upload; surfaces as "Upload failed — bucket missing. Run migration 008." |
+| Storage bucket missing (migration didn't run) | Cropper Save fails with a 404 from the upload; surfaces as "Upload failed — bucket missing. Run migration 009." |
 | `customizations` jsonb already has Plan 3 keys (e.g. `skipped: true`) | Shallow merge preserves them. Removing an override clears only the cake/card keys, not `skipped`. |
 
 ## Testing
@@ -258,7 +258,7 @@ Files are named `001_Acme_Dental_Group_a3b1c4f2.png` etc. so the bakery can matc
 
 ## Migration
 
-`supabase/migrations/008_cake_design.sql`:
+`supabase/migrations/009_cake_design.sql`:
 
 ```sql
 ALTER TABLE campaigns
@@ -307,7 +307,7 @@ CREATE POLICY IF NOT EXISTS "anyone can delete cake-prints"
 
 High-level order so the implementation plan has shape:
 
-1. Migration 008 (columns + bucket + RLS) and the pure helpers (`design.js`, `crop.js`, `zip-prints.js`).
+1. Migration 009 (columns + bucket + RLS) and the pure helpers (`design.js`, `crop.js`, `zip-prints.js`).
 2. `ImageCropper.jsx` standalone — testable in isolation against any image.
 3. Wizard Step 4 + `DesignsStep.jsx` — uses cropper for default slots; gate Finalize on default images present; persist to DB.
 4. Override list + add-override modal — per-recipient.
