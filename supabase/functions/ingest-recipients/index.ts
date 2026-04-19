@@ -192,7 +192,30 @@ async function handleManualAdd(req: Request, sb: SupabaseClient): Promise<Respon
     legacy_id,
     customizations: {},
   }).select('id').single();
-  if (insErr) return jsonResponse({ error: 'database_error', detail: insErr.message }, 500);
+  if (insErr) {
+    // 23505 = Postgres unique_violation. Reachable when two concurrent calls
+    // both pass the maybeSingle() dedup check and race to insert. The
+    // (campaign_id, legacy_id) unique index makes one of them lose; surface
+    // that as the same `duplicate: true` response the SELECT branch returns
+    // so the UI shows the friendly notice instead of a generic 500.
+    if ((insErr as { code?: string }).code === '23505') {
+      const { data: again } = await sb.from('recipients')
+        .select('id, assignment_status, lat, lon, bakery_id')
+        .eq('campaign_id', body.campaign_id)
+        .eq('legacy_id', legacy_id)
+        .maybeSingle();
+      if (again) {
+        return jsonResponse({
+          duplicate: true,
+          recipient_id: again.id,
+          assignment_status: again.assignment_status,
+          lat: again.lat, lon: again.lon,
+          bakery_id: again.bakery_id,
+        });
+      }
+    }
+    return jsonResponse({ error: 'database_error', detail: insErr.message }, 500);
+  }
 
   return jsonResponse({
     recipient_id: inserted!.id,

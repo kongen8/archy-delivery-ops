@@ -16,6 +16,7 @@ function ManualRecipientForm({campaignId, onSaved, onClose}) {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const [notice, setNotice] = useState('');
+  const companyRef = useRef(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const canSave = !saving && form.company.trim() && form.address.trim();
@@ -41,7 +42,9 @@ function ManualRecipientForm({campaignId, onSaved, onClose}) {
       onSaved && onSaved(result);
       if (keepOpen) {
         setForm(blank);
-        // refocus company input via key remount
+        // autoFocus only fires on initial mount, so drive the refocus by ref
+        // after the form clears so the user can type the next entry immediately.
+        setTimeout(() => companyRef.current?.focus(), 0);
       } else {
         onClose && onClose();
       }
@@ -64,7 +67,7 @@ function ManualRecipientForm({campaignId, onSaved, onClose}) {
       <div className="manual-form-grid">
         <label>
           <span>Company *</span>
-          <input autoFocus value={form.company}
+          <input ref={companyRef} autoFocus value={form.company}
             onChange={e => set('company', e.target.value)}
             placeholder="Acme Dental"/>
         </label>
@@ -84,7 +87,10 @@ function ManualRecipientForm({campaignId, onSaved, onClose}) {
               if (!picked) { set('lat', null); set('lon', null); return; }
               setForm(f => ({
                 ...f,
-                address: picked.street || picked.address || f.address,
+                // prefer the parsed street line; fall back to whatever the
+                // user already typed (NOT picked.address, which is the long
+                // formatted "330 Main St, San Francisco, CA 94105, USA" form).
+                address: picked.street || f.address,
                 city:    picked.city  || f.city,
                 state:   picked.state || f.state,
                 zip:     picked.zip   || f.zip,

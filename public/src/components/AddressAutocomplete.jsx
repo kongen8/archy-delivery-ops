@@ -40,9 +40,13 @@ function AddressAutocomplete({value, onValueChange, onPick, placeholder, proximi
     onValueChange(s.address);
     const retrieved = await retrieveAddress(s.id, { sessionToken: token });
     if (retrieved) {
+      // street is intentionally NOT falling back to s.address (the full
+      // formatted "330 Main St, San Francisco, CA 94105, USA" line). When
+      // Mapbox doesn't return properties.context.address, leave street null
+      // and let the consumer keep whatever was already in their input.
       onPick({
         address: retrieved.address || s.address,
-        street:  retrieved.street || s.address,
+        street:  retrieved.street,
         city:    retrieved.city,
         state:   retrieved.state,
         zip:     retrieved.zip,
