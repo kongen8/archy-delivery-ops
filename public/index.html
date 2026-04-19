@@ -74,7 +74,11 @@
   <script src="./src/upload/parse.js"></script>
   <script src="./src/upload/columns.js"></script>
 
-  <!-- Customer-side data layer (Plan 3) -->
+  <!-- Design helpers (Plan 5) -->
+  <script src="./src/utils/design.js"></script>
+  <script src="./src/upload/crop.js"></script>
+
+  <!-- Customer-side data layer (Plan 3 + Plan 5 design helpers) -->
   <script src="./src/db/customer.js"></script>
 
   <!-- Mapbox public token (browser-safe pk.*) -->
@@ -120,6 +124,9 @@
   <script type="text/babel" src="./src/components/BakeryHomeView.jsx"></script>
   <script type="text/babel" src="./src/components/CustomerHomeView.jsx"></script>
   <script type="text/babel" src="./src/components/UploadWizard.jsx"></script>
+
+  <!-- Plan 5 design surfaces -->
+  <script type="text/babel" src="./src/components/ImageCropper.jsx"></script>
 
   <!-- Route-aware app shell (depends on every component above) -->
   <script type="text/babel" src="./src/components/App.jsx"></script>

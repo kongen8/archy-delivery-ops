@@ -144,3 +144,22 @@ body{background:#f8f7f4}
 .wizard-row-edit input{padding:5px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;font-family:inherit}
 .wizard-empty{padding:32px;text-align:center;color:#9ca3af;font-size:13px;background:#f9fafb;border:1px dashed #e5e7eb;border-radius:8px}
 
+
+/* ===== ImageCropper modal (Plan 5) ===== */
+.cropper-backdrop{position:fixed;inset:0;background:rgba(15,23,42,0.6);display:flex;align-items:center;justify-content:center;z-index:1000;padding:24px}
+.cropper-modal{background:#fff;border-radius:12px;width:100%;max-width:760px;max-height:calc(100vh - 48px);display:flex;flex-direction:column;overflow:hidden}
+.cropper-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #f3f4f6}
+.cropper-header h3{margin:0;font-size:14px;font-weight:600}
+.cropper-header .x{background:none;border:0;font-size:20px;color:#9ca3af;cursor:pointer;padding:0;line-height:1}
+.cropper-stage{flex:1;background:#0f172a;display:flex;align-items:center;justify-content:center;padding:18px;position:relative;overflow:hidden;min-height:340px}
+.cropper-source{max-width:100%;max-height:100%;display:block;user-select:none;-webkit-user-drag:none}
+.cropper-rect{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.55);box-sizing:border-box;cursor:move}
+.cropper-rect .ratio{position:absolute;top:-22px;left:50%;transform:translateX(-50%);background:#111;color:#fff;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;white-space:nowrap;pointer-events:none}
+.cropper-rect .handle{position:absolute;width:12px;height:12px;background:#fff;border:1px solid #0f172a;box-sizing:border-box}
+.cropper-rect .handle.tl{top:-6px;left:-6px;cursor:nwse-resize}
+.cropper-rect .handle.tr{top:-6px;right:-6px;cursor:nesw-resize}
+.cropper-rect .handle.bl{bottom:-6px;left:-6px;cursor:nesw-resize}
+.cropper-rect .handle.br{bottom:-6px;right:-6px;cursor:nwse-resize}
+.cropper-footer{padding:14px 18px;border-top:1px solid #f3f4f6;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.cropper-meta{font-size:11px;color:#6b7280}
+.cropper-warn{font-size:11px;color:#92400e;background:#fef3c7;padding:4px 10px;border-radius:4px}
