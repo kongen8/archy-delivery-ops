@@ -21,7 +21,7 @@ const Customer = {
   async listRecipients(campaign_id) {
     if (!sb) throw new Error('sb not ready');
     const { data, error } = await sb.from('recipients')
-      .select('id, company, contact_name, phone, email, address, city, state, zip, lat, lon, assignment_status, customizations, bakery_id')
+      .select('id, company, contact_name, phone, email, address, city, state, zip, lat, lon, assignment_status, customizations, bakery_id, bakery:bakeries(name)')
       .eq('campaign_id', campaign_id)
       .order('company');
     if (error) throw error;
