@@ -4,6 +4,11 @@ node_modules/
 .DS_Store
 .worktrees/
 
+# Superpowers brainstorm sessions: ephemeral HTML mockups + a local Python
+# server's pid/log files. We keep curated outputs in .superpowers/mockups/
+# (also untracked by convention) and never want runtime artifacts here.
+.superpowers/brainstorm/
+
 # Cursor workspace — keep the project-scoped MCP config only.
 .cursor/*
 !.cursor/mcp.json
