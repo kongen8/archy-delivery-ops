@@ -1,32 +1,48 @@
 <!DOCTYPE html>
 <html lang="en"><head>
-<meta charset="UTF-8"/><title>Plan 5 — Cake design + print mockups</title>
+<meta charset="UTF-8"/><title>Plan 5 — Cake design + print mockups (v2)</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;padding:48px;background:#f3f4f6;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;color:#111827;max-width:920px;margin:0 auto}
   h1{font-size:28px;font-weight:700;margin:0 0 6px}
   .sub{color:#6b7280;font-size:14px;margin:0 0 32px}
+  .v{display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;margin-left:8px;vertical-align:middle}
   .card{display:block;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px 24px;margin-bottom:14px;text-decoration:none;color:inherit;transition:transform .15s,box-shadow .15s}
   .card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}
   .card h3{margin:0 0 4px;font-size:17px;font-weight:600}
   .card p{margin:0;font-size:13px;color:#6b7280;line-height:1.5}
   .card .num{display:inline-block;background:#111;color:#fff;font-size:12px;font-weight:600;padding:3px 9px;border-radius:6px;margin-right:8px;vertical-align:middle}
+  .changelog{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px 20px;margin-bottom:24px}
+  .changelog h2{margin:0 0 8px;font-size:14px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.04em}
+  .changelog ul{margin:0;padding-left:20px;font-size:13px;color:#6b7280;line-height:1.7}
+  .changelog code{background:#f3f4f6;padding:1px 5px;border-radius:3px;font-family:ui-monospace,Menlo,monospace;font-size:11px}
 </style></head><body>
-<h1>Plan 5 — Cake design + print pipeline</h1>
+<h1>Plan 5 — Cake design + print pipeline <span class="v">v2 · image-only</span></h1>
 <p class="sub">Three mockups for the new surfaces. Click into each to review; come back here to navigate.</p>
+
+<div class="changelog">
+  <h2>What changed from v1</h2>
+  <ul>
+    <li>No message text field anywhere. Both the box card and the cake print are pure images uploaded by the customer.</li>
+    <li>Customer uploads a raw image → drags a locked-aspect-ratio crop rectangle (4:6 for card, 1:1 for cake) → confirms. The cropper opens as a modal.</li>
+    <li>Per-recipient personalization happens by uploading a different image for that recipient. No automatic text overlay at print time.</li>
+    <li>Data model on each design = <code>{ cake_image_url, card_image_url }</code>. No <code>message</code>, no <code>signoff</code>.</li>
+    <li>Print artifacts simplify to "tile the card image 8 per letter" + "zip the cake images".</li>
+  </ul>
+</div>
 
 <a class="card" href="./plan5-wizard-step4-designs.html">
   <h3><span class="num">1</span>Customer · Upload wizard, new Step 4 (Designs)</h3>
-  <p>Campaign default at top (one card · message + image with URL/upload tabs). Per-recipient overrides at bottom (empty by default; "Add override" → modal). Resume from CustomerHome jumps straight here if recipients exist.</p>
+  <p>Campaign default at top: two upload slots (cake print round + box card 4×6), each opens a crop modal. Per-recipient overrides at bottom (empty by default; "Add override" → modal that picks recipient + lets you upload+crop one or both images).</p>
 </a>
 
 <a class="card" href="./plan5-bakery-production-tab.html">
   <h3><span class="num">2</span>Bakery · Production tab in OpsView</h3>
-  <p>Grid of recipient cards showing merged design (default + override). Toolbar: "Print all box cards" (browser print) and "Download all edible prints" (zip). Filters for missing-message and missing-image.</p>
+  <p>Grid of recipient cards showing both images side-by-side (round cake + 4×6 card). Toolbar: "Print all box cards" (tiles 8 per page) and "Download all edible prints" (zip). Filters for missing pieces.</p>
 </a>
 
 <a class="card" href="./plan5-box-card-print.html">
   <h3><span class="num">3</span>Print artifacts (box card + edible print)</h3>
-  <p>Single 4×6 box card preview, the 8-up letter-size sheet that prints, and the round 7.5" edible-print PNG that gets downloaded.</p>
+  <p>Single 4×6 box card preview (just the customer's image with cut marks), the 8-up letter-size sheet, and the round 7.5" edible-print PNG.</p>
 </a>
 </body></html>

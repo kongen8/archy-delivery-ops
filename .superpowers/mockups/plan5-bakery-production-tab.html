@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en"><head>
-<meta charset="UTF-8"/><title>Plan 5 mockup · Bakery Production tab</title>
+<meta charset="UTF-8"/><title>Plan 5 v2 mockup · Bakery Production tab</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;color:#111827;background:#f3f4f6}
@@ -20,21 +20,25 @@
   .toolbar .actions{display:flex;gap:8px}
   .btn-primary{background:#111;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-weight:500;font-size:13px;cursor:pointer}
   .btn-ghost{background:#fff;color:#374151;border:1px solid #e5e7eb;padding:7px 12px;border-radius:6px;font-size:13px;cursor:pointer}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;padding:20px 24px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px;padding:20px 24px}
   .cake-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;transition:transform .15s,box-shadow .15s}
   .cake-card:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.06)}
-  .cake-image{aspect-ratio:1/1;background:#f3f4f6;display:flex;align-items:center;justify-content:center;position:relative;padding:24px}
-  .cake-image img{width:100%;height:100%;border-radius:9999px;object-fit:cover}
-  .cake-image .placeholder{font-size:34px;color:#cbd5e1}
-  .badge{position:absolute;top:8px;left:8px;background:#fef2f2;color:#991b1b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:999px}
+  .cake-images{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .img-cell{aspect-ratio:1/1;background:#f3f4f6;display:flex;align-items:center;justify-content:center;position:relative;padding:14px;border-right:1px solid #f3f4f6}
+  .img-cell:last-child{border-right:0;aspect-ratio:2/3;padding:8px;background:#fafafa}
+  .img-cell .label{position:absolute;top:6px;left:6px;background:rgba(255,255,255,.85);color:#374151;font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;backdrop-filter:blur(2px)}
+  .img-cell .round{width:100%;height:100%;border-radius:9999px;object-fit:cover}
+  .img-cell .rect{width:100%;height:100%;object-fit:cover;border-radius:2px}
+  .img-cell .placeholder{font-size:24px;color:#cbd5e1}
+  .badge{position:absolute;top:6px;right:6px;background:#fef2f2;color:#991b1b;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:4px}
   .badge.warn{background:#fef3c7;color:#92400e}
-  .cake-body{padding:14px;display:flex;flex-direction:column;gap:6px;border-top:1px solid #f3f4f6}
-  .cake-co{font-size:14px;font-weight:600;color:#111}
-  .cake-addr{font-size:11px;color:#9ca3af}
-  .cake-msg{font-size:12px;color:#374151;font-style:italic;background:#f9fafb;border-left:3px solid #cbd5e1;padding:6px 8px;border-radius:0 4px 4px 0;margin-top:4px}
-  .cake-msg.missing{color:#9ca3af;font-style:normal;border-color:#fecaca}
-  .cake-source{font-size:10px;color:#9ca3af;margin-top:6px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .cake-body{padding:12px 14px;border-top:1px solid #f3f4f6;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .cake-body .left{min-width:0;flex:1}
+  .cake-co{font-size:13px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cake-addr{font-size:11px;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cake-source{font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em;font-weight:600;flex-shrink:0}
   .cake-source.override{color:#7c3aed}
+  .cake-source.partial{color:#d97706}
 </style></head><body>
 <a class="back" href="./plan5-index.html">‹ Back to Plan 5 mockups</a>
 <div class="ops">
@@ -56,8 +60,9 @@
     <div class="filters">
       <button class="filter active">All · 124</button>
       <button class="filter">Day 1 · 31</button>
-      <button class="filter">Missing image · 2</button>
-      <button class="filter">Missing message · 0</button>
+      <button class="filter">Missing card · 0</button>
+      <button class="filter">Missing cake · 2</button>
+      <button class="filter">Overridden · 2</button>
     </div>
     <div class="actions">
       <button class="btn-ghost">↓ Download all edible prints (.zip)</button>
@@ -66,77 +71,74 @@
   </div>
 
   <div class="grid">
-    <!-- using campaign default -->
+    <!-- default both -->
     <div class="cake-card">
-      <div class="cake-image"><img src="https://i.imgur.com/0JxQwS5.png" alt=""/></div>
+      <div class="cake-images">
+        <div class="img-cell"><span class="label">Cake</span><img class="round" src="https://i.imgur.com/0JxQwS5.png" alt=""/></div>
+        <div class="img-cell"><span class="label">Card</span><img class="rect" src="https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&h=600&fit=crop" alt=""/></div>
+      </div>
       <div class="cake-body">
-        <div class="cake-co">Acme Dental Group</div>
-        <div class="cake-addr">330 Main St · San Francisco</div>
-        <div class="cake-msg">Thanks for being part of the Archy family — happy holidays!</div>
-        <div class="cake-source">Default · Day 1</div>
+        <div class="left"><div class="cake-co">Acme Dental Group</div><div class="cake-addr">330 Main St · San Francisco</div></div>
+        <span class="cake-source">Default · Day 1</span>
       </div>
     </div>
 
-    <!-- override w/ custom image + message -->
+    <!-- both override -->
     <div class="cake-card">
-      <div class="cake-image">
-        <span class="badge warn">Override</span>
-        <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&h=400&fit=crop" alt=""/>
+      <div class="cake-images">
+        <div class="img-cell"><span class="label">Cake</span><span class="badge warn">Override</span><img class="round" src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&h=400&fit=crop" alt=""/></div>
+        <div class="img-cell"><span class="label">Card</span><span class="badge warn">Override</span><img class="rect" src="https://images.unsplash.com/photo-1607478900766-efe13248b125?w=400&h=600&fit=crop" alt=""/></div>
       </div>
       <div class="cake-body">
-        <div class="cake-co">Lee Family Dental</div>
-        <div class="cake-addr">1234 Oak St · San Francisco</div>
-        <div class="cake-msg">Happy birthday Dr. Lee! From the whole Archy team 🎂</div>
-        <div class="cake-source override">Override · Day 1</div>
+        <div class="left"><div class="cake-co">Lee Family Dental</div><div class="cake-addr">1234 Oak St · San Francisco</div></div>
+        <span class="cake-source override">Override · Day 1</span>
       </div>
     </div>
 
-    <!-- default w/ different image -->
+    <!-- card override only -->
     <div class="cake-card">
-      <div class="cake-image"><img src="https://i.imgur.com/0JxQwS5.png" alt=""/></div>
+      <div class="cake-images">
+        <div class="img-cell"><span class="label">Cake</span><img class="round" src="https://i.imgur.com/0JxQwS5.png" alt=""/></div>
+        <div class="img-cell"><span class="label">Card</span><span class="badge warn">Override</span><img class="rect" src="https://images.unsplash.com/photo-1607478900766-efe13248b125?w=400&h=600&fit=crop" alt=""/></div>
+      </div>
       <div class="cake-body">
-        <div class="cake-co">Pacific Heights Pediatrics</div>
-        <div class="cake-addr">2100 Webster St · San Francisco</div>
-        <div class="cake-msg">Thanks for being part of the Archy family — happy holidays!</div>
-        <div class="cake-source">Default · Day 1</div>
+        <div class="left"><div class="cake-co">Stanford Pediatric Group</div><div class="cake-addr">580 Welch Rd · Palo Alto</div></div>
+        <span class="cake-source partial">Card override · Day 1</span>
       </div>
     </div>
 
-    <!-- missing image, has default message -->
+    <!-- missing cake -->
     <div class="cake-card">
-      <div class="cake-image">
-        <span class="badge">Missing image</span>
-        <span class="placeholder">🖼</span>
+      <div class="cake-images">
+        <div class="img-cell"><span class="label">Cake</span><span class="badge">Missing</span><span class="placeholder">🎂</span></div>
+        <div class="img-cell"><span class="label">Card</span><img class="rect" src="https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&h=600&fit=crop" alt=""/></div>
       </div>
       <div class="cake-body">
-        <div class="cake-co">Sunset Dermatology</div>
-        <div class="cake-addr">1801 Irving St · San Francisco</div>
-        <div class="cake-msg">Thanks for being part of the Archy family — happy holidays!</div>
-        <div class="cake-source">Default · Day 1</div>
+        <div class="left"><div class="cake-co">Sunset Dermatology</div><div class="cake-addr">1801 Irving St · San Francisco</div></div>
+        <span class="cake-source">Default · Day 1</span>
       </div>
     </div>
 
-    <!-- override message only, default image -->
+    <!-- default both -->
     <div class="cake-card">
-      <div class="cake-image">
-        <span class="badge warn">Msg override</span>
-        <img src="https://i.imgur.com/0JxQwS5.png" alt=""/>
+      <div class="cake-images">
+        <div class="img-cell"><span class="label">Cake</span><img class="round" src="https://i.imgur.com/0JxQwS5.png" alt=""/></div>
+        <div class="img-cell"><span class="label">Card</span><img class="rect" src="https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&h=600&fit=crop" alt=""/></div>
       </div>
       <div class="cake-body">
-        <div class="cake-co">Stanford Pediatric Group</div>
-        <div class="cake-addr">580 Welch Rd · Palo Alto</div>
-        <div class="cake-msg">For the team that delivered baby Stanford last week — congrats!</div>
-        <div class="cake-source override">Partial override · Day 1</div>
+        <div class="left"><div class="cake-co">Pacific Heights Pediatrics</div><div class="cake-addr">2100 Webster St · San Francisco</div></div>
+        <span class="cake-source">Default · Day 1</span>
       </div>
     </div>
 
     <div class="cake-card">
-      <div class="cake-image"><img src="https://i.imgur.com/0JxQwS5.png" alt=""/></div>
+      <div class="cake-images">
+        <div class="img-cell"><span class="label">Cake</span><img class="round" src="https://i.imgur.com/0JxQwS5.png" alt=""/></div>
+        <div class="img-cell"><span class="label">Card</span><img class="rect" src="https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&h=600&fit=crop" alt=""/></div>
+      </div>
       <div class="cake-body">
-        <div class="cake-co">Castro Vision Center</div>
-        <div class="cake-addr">2255 Market St · San Francisco</div>
-        <div class="cake-msg">Thanks for being part of the Archy family — happy holidays!</div>
-        <div class="cake-source">Default · Day 1</div>
+        <div class="left"><div class="cake-co">Castro Vision Center</div><div class="cake-addr">2255 Market St · San Francisco</div></div>
+        <span class="cake-source">Default · Day 1</span>
       </div>
     </div>
   </div>
