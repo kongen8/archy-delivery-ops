@@ -39,6 +39,7 @@ async function suggestAddress(query, { sessionToken, proximity, limit = 5, signa
       q: query,
       access_token: key,
       language: 'en',
+      country: 'us',
       limit: String(limit),
       session_token: sessionToken || Math.random().toString(36).slice(2),
       types: 'address,place,postcode,locality,neighborhood,poi',
@@ -60,8 +61,10 @@ async function suggestAddress(query, { sessionToken, proximity, limit = 5, signa
   }
 }
 
-// Retrieve full coords for a suggestion (same sessionToken as the suggest call
-// keeps the search-session billing tier).
+// Retrieve full coords + structured address parts for a suggestion (same
+// sessionToken as the suggest call keeps the search-session billing tier).
+// Returns { lat, lon, address, city, state, zip, display } so callers can
+// populate every field of an address form in one shot.
 async function retrieveAddress(mapboxId, { sessionToken } = {}) {
   const key = window.MAPBOX_API_KEY;
   if (!key || !mapboxId) return null;
@@ -69,16 +72,29 @@ async function retrieveAddress(mapboxId, { sessionToken } = {}) {
     const params = new URLSearchParams({
       access_token: key,
       session_token: sessionToken || Math.random().toString(36).slice(2),
+      // Mapbox's `language` param is honored on retrieve too; without it the
+      // response can come back in the locale of the underlying POI data
+      // (we hit a US address that returned Vietnamese context fields).
+      language: 'en',
     });
     const r = await fetch(`https://api.mapbox.com/search/searchbox/v1/retrieve/${encodeURIComponent(mapboxId)}?${params.toString()}`);
     if (!r.ok) return null;
     const j = await r.json();
     const f = j.features && j.features[0];
     if (!f) return null;
+    const p = f.properties || {};
+    const ctx = p.context || {};
     const [lon, lat] = f.geometry?.coordinates || [];
+    // Mapbox returns the street line as either `address` (when the whole
+    // suggestion IS an address) or `address.name` (when it's a POI etc).
+    const street = ctx.address?.name || p.address || (p.feature_type === 'address' ? p.name : '') || '';
     return {
       lat, lon,
-      address: f.properties?.full_address || f.properties?.place_formatted || f.properties?.name || '',
+      address: street,
+      city: ctx.place?.name || ctx.locality?.name || '',
+      state: ctx.region?.region_code || ctx.region?.name || '',
+      zip: ctx.postcode?.name || '',
+      display: p.full_address || p.place_formatted || p.name || '',
     };
   } catch (e) { console.warn('Mapbox retrieve failed:', e); return null; }
 }

@@ -335,7 +335,18 @@ function RecipientRow({row, bucket, onChanged}) {
       {editing ? (
         <div className="wizard-row-edit">
           <input value={draft.company} onChange={e => setDraft(d => ({...d, company: e.target.value}))} placeholder="Company"/>
-          <input value={draft.address} onChange={e => setDraft(d => ({...d, address: e.target.value}))} placeholder="Address"/>
+          <AddressTypeahead
+            value={draft.address}
+            onChange={v => setDraft(d => ({...d, address: v}))}
+            onSelect={parts => setDraft(d => ({
+              ...d,
+              address: parts.address || d.address,
+              city: parts.city || d.city,
+              state: parts.state || d.state,
+              zip: parts.zip || d.zip,
+            }))}
+            placeholder="Address"
+          />
           <input value={draft.city} onChange={e => setDraft(d => ({...d, city: e.target.value}))} placeholder="City"/>
           <input value={draft.state} onChange={e => setDraft(d => ({...d, state: e.target.value}))} placeholder="ST" style={{width:60}}/>
           <input value={draft.zip} onChange={e => setDraft(d => ({...d, zip: e.target.value}))} placeholder="ZIP" style={{width:80}}/>

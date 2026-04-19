@@ -94,6 +94,28 @@ function ProductionTab({bakeryId}) {
 
   if (loading) return <div style={{padding:24,color:'#9ca3af'}}>Loading production view…</div>;
 
+  // Three distinct empty states so the bakery knows what to do next.
+  if (rows.length === 0) {
+    return <div className="production-empty">
+      <div className="emoji">📦</div>
+      <h3>No assigned recipients yet</h3>
+      <p>Once a customer finalizes a campaign with deliveries in your area,
+         their recipients will show up here so you can pull cake prints and
+         box cards.</p>
+    </div>;
+  }
+  const anyDesign = rows.some(x => x.design.cake_image_url || x.design.card_image_url);
+  if (!anyDesign) {
+    return <div className="production-empty">
+      <div className="emoji">🎨</div>
+      <h3>Recipients are here, but no designs yet</h3>
+      <p>Your customers haven't uploaded cake or card artwork for any of
+         their {rows.length} assigned {rows.length === 1 ? 'recipient' : 'recipients'} yet.
+         As soon as they do, those designs appear in this grid for printing
+         and the edible-print download.</p>
+    </div>;
+  }
+
   return <div>
     {err && <div className="wizard-err" style={{margin:'0 0 12px'}}>{err}</div>}
 

@@ -37,10 +37,10 @@
     The full local-asset URL set is rewritten with ?v=BUILD by a tiny inline
     helper below (see <script>__BUILD__</script>).
   -->
-  <script>window.__BUILD__ = '20260419h';</script>
+  <script>window.__BUILD__ = '20260419j';</script>
 
   <!-- App stylesheet -->
-  <link href="./src/styles.css?v=20260419h" rel="stylesheet"/>
+  <link href="./src/styles.css?v=20260419j" rel="stylesheet"/>
 </head>
 <body>
   <div id="root"></div>
@@ -58,90 +58,92 @@
   <!-- Profile bootstrap (runs before supabase.js). Renders the landing picker
        into #root when no profile is selected and sets window.__CURRENT_PROFILE__
        + window.__PROFILE_GATE_ACTIVE__ for the scripts below. -->
-  <script src="./src/config/profile.js?v=20260419h"></script>
+  <script src="./src/config/profile.js?v=20260419j"></script>
 
   <!-- Hash router (depends on profile having been resolved) -->
-  <script src="./src/config/router.js?v=20260419h"></script>
+  <script src="./src/config/router.js?v=20260419j"></script>
 
   <!-- Persistence layer (Supabase client + DB facade) -->
-  <script src="./src/config/supabase.js?v=20260419h"></script>
+  <script src="./src/config/supabase.js?v=20260419j"></script>
 
   <!-- Multi-tenant facade (new) -->
-  <script src="./src/config/db2.js?v=20260419h"></script>
+  <script src="./src/config/db2.js?v=20260419j"></script>
 
   <!-- Admin data-access layer (Plan 2) -->
-  <script src="./src/db/admin.js?v=20260419h"></script>
+  <script src="./src/db/admin.js?v=20260419j"></script>
 
   <!-- Polygon overlap helper (Plan 2) -->
-  <script src="./src/admin/overlap.js?v=20260419h"></script>
+  <script src="./src/admin/overlap.js?v=20260419j"></script>
 
   <!-- Reassignment helper (Plan 2 follow-up) -->
-  <script src="./src/admin/reassign.js?v=20260419h"></script>
+  <script src="./src/admin/reassign.js?v=20260419j"></script>
 
   <!-- Upload helpers (Plan 3) -->
-  <script src="./src/upload/parse.js?v=20260419h"></script>
-  <script src="./src/upload/columns.js?v=20260419h"></script>
+  <script src="./src/upload/parse.js?v=20260419j"></script>
+  <script src="./src/upload/columns.js?v=20260419j"></script>
 
   <!-- Design helpers (Plan 5) -->
-  <script src="./src/utils/design.js?v=20260419h"></script>
-  <script src="./src/upload/crop.js?v=20260419h"></script>
-  <script src="./src/utils/zip-prints.js?v=20260419h"></script>
+  <script src="./src/utils/design.js?v=20260419j"></script>
+  <script src="./src/upload/crop.js?v=20260419j"></script>
+  <script src="./src/utils/zip-prints.js?v=20260419j"></script>
+  <script src="./src/utils/image-input.js?v=20260419j"></script>
 
   <!-- Customer-side data layer (Plan 3 + Plan 5 design helpers) -->
-  <script src="./src/db/customer.js?v=20260419h"></script>
+  <script src="./src/db/customer.js?v=20260419j"></script>
 
   <!-- Mapbox public token (browser-safe pk.*) -->
-  <script src="./src/config/mapbox.js?v=20260419h"></script>
+  <script src="./src/config/mapbox.js?v=20260419j"></script>
 
   <!-- Domain constants + pure utilities -->
-  <script src="./src/constants.js?v=20260419h"></script>
-  <script src="./src/utils/format.js?v=20260419h"></script>
-  <script src="./src/utils/osrm.js?v=20260419h"></script>
-  <script src="./src/utils/geocode.js?v=20260419h"></script>
+  <script src="./src/constants.js?v=20260419j"></script>
+  <script src="./src/utils/format.js?v=20260419j"></script>
+  <script src="./src/utils/osrm.js?v=20260419j"></script>
+  <script src="./src/utils/geocode.js?v=20260419j"></script>
 
   <!-- Archy → legacy-shape adapter (bridges new schema to existing components) -->
-  <script src="./src/utils/archy-adapter.js?v=20260419h"></script>
+  <script src="./src/utils/archy-adapter.js?v=20260419j"></script>
 
   <!-- Rebalancing / VRP engine (dispatches to /vrp-worker.js) -->
-  <script src="./src/engine/rebalance.js?v=20260419h"></script>
+  <script src="./src/engine/rebalance.js?v=20260419j"></script>
 
   <!-- Map styling + marker factories (MapLibre helpers) -->
-  <script src="./src/map/cake.js?v=20260419h"></script>
-  <script src="./src/map/clouds.js?v=20260419h"></script>
-  <script src="./src/map/markers.js?v=20260419h"></script>
+  <script src="./src/map/cake.js?v=20260419j"></script>
+  <script src="./src/map/clouds.js?v=20260419j"></script>
+  <script src="./src/map/markers.js?v=20260419j"></script>
 
   <!--
     React components. Loaded as text/babel so babel-standalone compiles the
     JSX at runtime. Order matters: each component must be defined before any
     component that references it.
   -->
-  <script type="text/babel" src="./src/components/ProgressBar.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/StopCard.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/DepotManager.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/MapView.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/PrintSheet.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/OpsView.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/CustomerView.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/PhotosView.jsx?v=20260419h"></script>
+  <script type="text/babel" src="./src/components/ProgressBar.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/StopCard.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/DepotManager.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/MapView.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/PrintSheet.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/OpsView.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/CustomerView.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/PhotosView.jsx?v=20260419j"></script>
 
   <!-- Plan 2 views (depend on everything above) -->
-  <script type="text/babel" src="./src/components/ProfileSwitcher.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/DeliveryAreaDraw.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/BakeryEditor.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/CustomerEditor.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/AdminView.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/BakeryHomeView.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/CustomerHomeView.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/UploadWizard.jsx?v=20260419h"></script>
+  <script type="text/babel" src="./src/components/ProfileSwitcher.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/DeliveryAreaDraw.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/BakeryEditor.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/CustomerEditor.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/AdminView.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/BakeryHomeView.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/AddressTypeahead.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/CustomerHomeView.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/UploadWizard.jsx?v=20260419j"></script>
 
   <!-- Plan 5 design surfaces -->
-  <script type="text/babel" src="./src/components/ImageCropper.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/DesignsStep.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/ProductionTab.jsx?v=20260419h"></script>
-  <script type="text/babel" src="./src/components/BoxCardSheet.jsx?v=20260419h"></script>
+  <script type="text/babel" src="./src/components/ImageCropper.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/DesignsStep.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/ProductionTab.jsx?v=20260419j"></script>
+  <script type="text/babel" src="./src/components/BoxCardSheet.jsx?v=20260419j"></script>
 
   <!-- Route-aware app shell (depends on every component above) -->
-  <script type="text/babel" src="./src/components/App.jsx?v=20260419h"></script>
+  <script type="text/babel" src="./src/components/App.jsx?v=20260419j"></script>
 
   <!-- Mount the React tree (skip when the landing picker is showing) -->
   <script type="text/babel">

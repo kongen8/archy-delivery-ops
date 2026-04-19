@@ -234,6 +234,20 @@ body{background:#f8f7f4}
 .cake-card-prod .body .source.partial{color:#d97706}
 .cake-lightbox{position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:1500;display:flex;align-items:center;justify-content:center;padding:32px;cursor:zoom-out}
 .cake-lightbox img{max-width:100%;max-height:100%;background:#fff;border-radius:8px}
+.production-empty{padding:48px 32px;text-align:center;color:#6b7280;border:1px dashed #d1d5db;border-radius:12px;background:#fff;max-width:560px;margin:24px auto}
+.production-empty .emoji{font-size:48px;line-height:1;margin-bottom:16px;opacity:.7}
+.production-empty h3{font-size:16px;font-weight:600;color:#111;margin:0 0 8px}
+.production-empty p{font-size:13px;line-height:1.5;color:#6b7280;margin:0}
+
+/* ===== Address typeahead (polish) ===== */
+.address-typeahead{position:relative}
+.address-suggest{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 8px 24px -8px rgba(15,23,42,.18);max-height:280px;overflow-y:auto;z-index:1200;font-size:13px}
+.address-suggest-loading{padding:10px 14px;color:#9ca3af;font-style:italic}
+.address-suggest-item{padding:8px 14px;cursor:pointer;border-bottom:1px solid #f3f4f6}
+.address-suggest-item:last-child{border-bottom:0}
+.address-suggest-item.active{background:#f3f4f6}
+.address-suggest-text{color:#111;font-weight:500}
+.address-suggest-sub{color:#6b7280;font-size:11px;margin-top:2px}
 
 /* ===== Box card print sheet (Plan 5 Task 9) =====
    Spec deviation note: design spec says "8 per letter sheet" at 4×6 portrait,

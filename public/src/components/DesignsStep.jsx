@@ -32,16 +32,15 @@ function DesignsStep({campaign, customerId, onBack, onFinalize}) {
     [recipients]
   );
 
-  function pickFile(kind, file) {
+  async function pickFile(kind, file) {
     setErr('');
     if (!file) return;
-    if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) {
-      setErr('Only PNG/JPG/WebP accepted.'); return;
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      setErr('Image too large — please resize to under 20 MB.'); return;
-    }
-    setCropping({ kind, file });
+    setWorking(true);
+    try {
+      const normalized = await window.normalizeUploadedImage(file);
+      setCropping({ kind, file: normalized });
+    } catch (e) { setErr(e.message || String(e)); }
+    setWorking(false);
   }
 
   async function onCropSave(blob) {
@@ -194,16 +193,15 @@ function OverrideEditor({campaign, initialRecipient, recipients, onClose, onSave
     });
   }, [picked && picked.id]);
 
-  function pickFile(kind, file) {
+  async function pickFile(kind, file) {
     setErr('');
     if (!file) return;
-    if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) {
-      setErr('Only PNG/JPG/WebP accepted.'); return;
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      setErr('Image too large — under 20 MB.'); return;
-    }
-    setCropping({ kind, file });
+    setWorking(true);
+    try {
+      const normalized = await window.normalizeUploadedImage(file);
+      setCropping({ kind, file: normalized });
+    } catch (e) { setErr(e.message || String(e)); }
+    setWorking(false);
   }
 
   async function onCropSave(blob) {
@@ -290,8 +288,9 @@ function Slot({kind, title, spec, mask, url, onPick, working}) {
     <div className="designs-canvas" onClick={() => inputRef.current?.click()}>
       {url
         ? <img className={mask === 'round' ? 'round' : ''} src={url} alt=""/>
-        : <div className="empty"><div className="icon">⊕</div>Drop a PNG/JPG here<br/>or click to upload</div>}
-      <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp"
+        : <div className="empty"><div className="icon">⊕</div>Drop a PNG/JPG/HEIC/PDF here<br/>or click to upload</div>}
+      <input ref={inputRef} type="file"
+             accept="image/png,image/jpeg,image/webp,image/heic,image/heif,application/pdf,.heic,.heif,.pdf"
              onChange={e => onPick(e.target.files?.[0])}/>
     </div>
     <div className="designs-slot-actions">
