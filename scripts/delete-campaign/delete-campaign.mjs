@@ -97,13 +97,20 @@ const answer = (await rl.question(prompt)).trim().toLowerCase();
 rl.close();
 if (answer !== 'y') { console.log('Aborted.'); process.exit(0); }
 
+// Guard the UPDATE the same way the customer helper does. The interactive
+// prompt above can sit open for seconds or minutes — if anything changes the
+// row's status (or its deleted_at) in the meantime, we must abort instead of
+// silently overwriting a row that's no longer eligible.
 const update = args.restore ? { deleted_at: null } : { deleted_at: new Date().toISOString() };
-const { data: updated, error: uErr } = await sb
-  .from('campaigns')
-  .update(update)
-  .eq('id', campaign.id)
-  .select('deleted_at')
-  .single();
+let q = sb.from('campaigns').update(update).eq('id', campaign.id);
+q = args.restore
+  ? q.not('deleted_at', 'is', null)
+  : q.eq('status', 'draft').is('deleted_at', null);
+const { data: updated, error: uErr } = await q.select('deleted_at').maybeSingle();
 if (uErr) { console.error('Update failed:', uErr.message); process.exit(1); }
+if (!updated) {
+  console.error('Aborted: campaign state changed since the prompt; nothing was modified.');
+  process.exit(1);
+}
 
 console.log(args.restore ? 'Restored.' : 'Soft-deleted.', 'deleted_at =', updated.deleted_at);
