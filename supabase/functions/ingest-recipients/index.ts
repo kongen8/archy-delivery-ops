@@ -109,6 +109,100 @@ async function handleGeocodeSingle(req: Request, sb: SupabaseClient): Promise<Re
   });
 }
 
+// Per-row manual entry. Wired to UploadWizard's "Add recipient" form. Uses
+// (campaign_id, legacy_id) for duplicate detection so a customer who types
+// the same row twice gets the existing recipient back, not a second copy.
+async function handleManualAdd(req: Request, sb: SupabaseClient): Promise<Response> {
+  let body: {
+    campaign_id?: string;
+    company?: string; contact_name?: string | null;
+    phone?: string | null; email?: string | null;
+    address?: string; city?: string | null; state?: string | null; zip?: string | null;
+    lat?: number | null; lon?: number | null;
+  };
+  try { body = await req.json(); } catch { return jsonResponse({ error: 'invalid_json' }, 400); }
+
+  const company = (body.company || '').trim();
+  const address = (body.address || '').trim();
+  if (!body.campaign_id || !company || !address) {
+    return jsonResponse({ error: 'missing_required_fields' }, 400);
+  }
+
+  const { data: campaign, error: campErr } = await sb.from('campaigns')
+    .select('id').eq('id', body.campaign_id).maybeSingle();
+  if (campErr) return jsonResponse({ error: 'database_error', detail: campErr.message }, 500);
+  if (!campaign) return jsonResponse({ error: 'campaign_not_found' }, 404);
+
+  const legacy_id = await legacyId(company, address);
+
+  // Dedup check: if a recipient with this legacy_id already exists in this
+  // campaign, return it untouched. The (campaign_id, legacy_id) unique index
+  // is the safety net for the race window between this SELECT and the INSERT.
+  const { data: existing } = await sb.from('recipients')
+    .select('id, assignment_status, lat, lon, bakery_id')
+    .eq('campaign_id', body.campaign_id)
+    .eq('legacy_id', legacy_id)
+    .maybeSingle();
+  if (existing) {
+    return jsonResponse({
+      duplicate: true,
+      recipient_id: existing.id,
+      assignment_status: existing.assignment_status,
+      lat: existing.lat, lon: existing.lon,
+      bakery_id: existing.bakery_id,
+    });
+  }
+
+  const city  = (body.city  || '').trim() || null;
+  const state = (body.state || '').trim() || null;
+  const zip   = (body.zip   || '').trim() || null;
+
+  // Use client-supplied coords when present (came from a Mapbox autocomplete
+  // pick); otherwise geocode the address ourselves via the same single-row
+  // batch the bulk pipeline uses.
+  let lat: number | null = (typeof body.lat === 'number') ? body.lat : null;
+  let lon: number | null = (typeof body.lon === 'number') ? body.lon : null;
+  if (lat === null || lon === null) {
+    const [g] = await geocodeRows(sb, [{ address, city, state, zip }]);
+    lat = g?.lat ?? null;
+    lon = g?.lon ?? null;
+  }
+
+  const areas = await loadAreas(sb);
+  const matched = (lat !== null && lon !== null) ? findAreaIn(areas, lon, lat) : null;
+  const bucket: Bucket = bucketFor({
+    hasCompany: !!company,
+    hasAddress: !!address,
+    aiConfidence: 'high',
+    geocodeOk: lat !== null && lon !== null,
+    areaMatch: matched,
+  });
+
+  const { data: inserted, error: insErr } = await sb.from('recipients').insert({
+    campaign_id: body.campaign_id,
+    bakery_id: matched ? matched.bakery_id : null,
+    company,
+    contact_name: (body.contact_name || '').trim() || null,
+    phone: (body.phone || '').trim() || null,
+    email: (body.email || '').trim() || null,
+    address,
+    city, state, zip,
+    lat, lon,
+    assignment_status: bucket,
+    legacy_id,
+    customizations: {},
+  }).select('id').single();
+  if (insErr) return jsonResponse({ error: 'database_error', detail: insErr.message }, 500);
+
+  return jsonResponse({
+    recipient_id: inserted!.id,
+    assignment_status: bucket,
+    lat, lon,
+    bakery_id: matched ? matched.bakery_id : null,
+    duplicate: false,
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders() });
   if (req.method !== 'POST') return jsonResponse({ error: 'method_not_allowed' }, 405);
@@ -119,6 +213,10 @@ Deno.serve(async (req) => {
   // before we try to parse the bulk-ingest body.
   if (new URL(req.url).pathname.endsWith('/geocode-single')) {
     return await handleGeocodeSingle(req, sb);
+  }
+
+  if (new URL(req.url).pathname.endsWith('/manual-add')) {
+    return await handleManualAdd(req, sb);
   }
 
   let body: IngestRequest;
