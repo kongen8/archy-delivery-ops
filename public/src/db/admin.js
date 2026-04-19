@@ -39,7 +39,7 @@ const Admin = {
     if (!sb) throw new Error('sb not ready');
     const [{ data: customer, error: cErr }, { data: campaigns, error: pErr }] = await Promise.all([
       sb.from('customers').select('*').eq('id', id).single(),
-      sb.from('campaigns').select('*').eq('customer_id', id).order('created_at'),
+      sb.from('campaigns').select('*').eq('customer_id', id).is('deleted_at', null).order('created_at'),
     ]);
     if (cErr) throw cErr;
     if (pErr) throw pErr;
