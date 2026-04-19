@@ -241,13 +241,30 @@ function BucketRow({row,bucket,onChanged}){
     company:row.company||'',contact_name:row.contact_name||'',
     phone:row.phone||'',email:row.email||'',
     address:row.address||'',city:row.city||'',state:row.state||'',zip:row.zip||'',
+    notes:row.notes||'',
   });
+  const [editingNote,setEditingNote]=useState(false);
+  const [noteDraft,setNoteDraft]=useState(row.notes||'');
+  const [savingNote,setSavingNote]=useState(false);
+
+  async function saveNote(){
+    setSavingNote(true);
+    try{
+      await Customer.setRecipientNote(row.id,noteDraft);
+      setEditingNote(false);onChanged();
+    }catch(e){setErr(e.message||String(e));}
+    setSavingNote(false);
+  }
 
   async function save(){
     setWorking(true);setErr('');
     try{
       if(bucket==='flagged_out_of_area'||bucket==='geocode_failed'){
         await Customer.retryGeocode(row.id,{address:draft.address,city:draft.city,state:draft.state,zip:draft.zip});
+        // retryGeocode skips notes — persist note edits separately.
+        if((draft.notes||'')!==(row.notes||'')){
+          await Customer.setRecipientNote(row.id,draft.notes);
+        }
       }else{
         await Customer.acceptRecipient(row.id,draft);
       }
@@ -303,6 +320,13 @@ function BucketRow({row,bucket,onChanged}){
           <input value={draft.zip} onChange={e=>setDraft(d=>({...d,zip:e.target.value}))} placeholder="ZIP" style={{width:80}}/>
           <input value={draft.contact_name} onChange={e=>setDraft(d=>({...d,contact_name:e.target.value}))} placeholder="Contact"/>
           <input value={draft.phone} onChange={e=>setDraft(d=>({...d,phone:e.target.value}))} placeholder="Phone"/>
+          <textarea
+            value={draft.notes}
+            onChange={e=>setDraft(d=>({...d,notes:e.target.value}))}
+            placeholder="Note for this recipient (optional)"
+            rows={2}
+            style={{flexBasis:'100%',padding:'6px 8px',border:'1px solid #d1d5db',borderRadius:6,fontFamily:'inherit',fontSize:12,resize:'vertical'}}
+          />
         </div>
       ):(
         <>
@@ -312,6 +336,18 @@ function BucketRow({row,bucket,onChanged}){
           {bucket==='assigned'&&row.bakery?.name&&
             <div style={{fontSize:11,color:'#15803d',marginTop:4,fontWeight:500}}>→ {row.bakery.name}</div>
           }
+          {row.notes&&!editingNote&&<div className="wizard-row-note" style={{marginTop:4,fontSize:12,color:'#7c3aed',background:'#faf5ff',padding:'4px 8px',borderRadius:4,borderLeft:'2px solid #7c3aed'}}>
+            <span style={{fontWeight:600}}>Note: </span>{row.notes}
+            <button onClick={()=>{setNoteDraft(row.notes||'');setEditingNote(true);}} style={{background:'none',border:'none',color:'#7c3aed',fontSize:11,marginLeft:6,cursor:'pointer',textDecoration:'underline',padding:0}}>edit</button>
+          </div>}
+          {!row.notes&&!editingNote&&<button onClick={()=>{setNoteDraft('');setEditingNote(true);}} style={{background:'none',border:'none',color:'#9ca3af',fontSize:11,cursor:'pointer',textDecoration:'underline',padding:0,marginTop:4}}>+ add note</button>}
+          {editingNote&&<div style={{marginTop:6}}>
+            <textarea value={noteDraft} onChange={e=>setNoteDraft(e.target.value)} rows={2} placeholder="Note for this recipient" style={{width:'100%',padding:'6px 8px',border:'1px solid #d1d5db',borderRadius:6,fontFamily:'inherit',fontSize:12,resize:'vertical',boxSizing:'border-box'}}/>
+            <div style={{marginTop:4,display:'flex',gap:6}}>
+              <button className="btn-primary" disabled={savingNote} onClick={saveNote} style={{padding:'4px 10px',fontSize:12}}>{savingNote?'Saving…':'Save note'}</button>
+              <button className="btn-ghost" disabled={savingNote} onClick={()=>setEditingNote(false)} style={{padding:'4px 10px',fontSize:12}}>Cancel</button>
+            </div>
+          </div>}
           {err&&<div style={{fontSize:11,color:'#991b1b',marginTop:4}}>{err}</div>}
         </>
       )}

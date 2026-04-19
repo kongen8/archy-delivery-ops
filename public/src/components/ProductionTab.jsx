@@ -25,21 +25,33 @@ function ProductionTab({bakeryId}) {
     (async () => {
       setLoading(true); setErr('');
       try {
-        const { data: recs, error: rErr } = await sb.from('recipients')
-          .select('id, company, address, city, state, zip, customizations, campaign_id, assignment_status')
-          .eq('bakery_id', bakeryId)
-          .eq('assignment_status', 'assigned');
-        if (rErr) throw rErr;
-        const campIds = [...new Set((recs || []).map(r => r.campaign_id).filter(Boolean))];
+        // Paginate manually — PostgREST defaults to 1000 rows, and a single
+        // bakery can easily exceed that across multiple campaigns. Without
+        // this loop, late-uploaded campaigns silently disappear from the
+        // production grid AND their campaign-level notes never surface.
+        const recs = [];
+        const PAGE = 1000;
+        for (let from = 0; ; from += PAGE) {
+          const { data, error: rErr } = await sb.from('recipients')
+            .select('id, company, address, city, state, zip, notes, customizations, campaign_id, assignment_status')
+            .eq('bakery_id', bakeryId)
+            .eq('assignment_status', 'assigned')
+            .order('id', { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (rErr) throw rErr;
+          recs.push(...(data || []));
+          if (!data || data.length < PAGE) break;
+        }
+        const campIds = [...new Set(recs.map(r => r.campaign_id).filter(Boolean))];
         let camps = [];
         if (campIds.length > 0) {
           const { data, error: cErr } = await sb.from('campaigns')
-            .select('id, name, default_design').in('id', campIds);
+            .select('id, name, notes, default_design, customer:customers(name)').in('id', campIds);
           if (cErr) throw cErr;
           camps = data || [];
         }
         const campMap = Object.fromEntries(camps.map(c => [c.id, c]));
-        const merged = (recs || []).map(r => {
+        const merged = recs.map(r => {
           const camp = campMap[r.campaign_id];
           const design = mergeDesign(camp && camp.default_design, r.customizations);
           const cakeOverride = !!(r.customizations && r.customizations.cake_image_url);
@@ -69,6 +81,32 @@ function ProductionTab({bakeryId}) {
     if (filter === 'overridden') return x.cakeOverride || x.cardOverride;
     return true;
   }), [rows, filter]);
+
+  // Surface campaign-level notes from the customer at the top so the bakery
+  // sees standing instructions (allergens, drop-off windows) before they pick
+  // up an individual recipient. One banner per campaign that has a note.
+  // NOTE: must live above the early returns below so hook order stays stable.
+  const campaignsWithNotes = useMemo(() => {
+    const seen = new Map();
+    for (const x of rows) {
+      const c = x.campaign;
+      if (c && c.notes && !seen.has(c.id)) seen.set(c.id, c);
+    }
+    return [...seen.values()];
+  }, [rows]);
+
+  function NotesBanner() {
+    if (campaignsWithNotes.length === 0) return null;
+    return <div className="production-notes">
+      {campaignsWithNotes.map(c => <div key={c.id} className="production-note-banner">
+        <div className="note-meta">
+          <span className="note-tag">Note</span>
+          <span className="note-camp">{c.customer?.name ? c.customer.name + ' · ' : ''}{c.name}</span>
+        </div>
+        <div className="note-body">{c.notes}</div>
+      </div>)}
+    </div>;
+  }
 
   function printBoxCards() {
     const visibleWithCard = visible.filter(x => x.design.card_image_url);
@@ -106,18 +144,23 @@ function ProductionTab({bakeryId}) {
   }
   const anyDesign = rows.some(x => x.design.cake_image_url || x.design.card_image_url);
   if (!anyDesign) {
-    return <div className="production-empty">
-      <div className="emoji">🎨</div>
-      <h3>Recipients are here, but no designs yet</h3>
-      <p>Your customers haven't uploaded cake or card artwork for any of
-         their {rows.length} assigned {rows.length === 1 ? 'recipient' : 'recipients'} yet.
-         As soon as they do, those designs appear in this grid for printing
-         and the edible-print download.</p>
+    return <div>
+      <NotesBanner/>
+      <div className="production-empty">
+        <div className="emoji">🎨</div>
+        <h3>Recipients are here, but no designs yet</h3>
+        <p>Your customers haven't uploaded cake or card artwork for any of
+           their {rows.length} assigned {rows.length === 1 ? 'recipient' : 'recipients'} yet.
+           As soon as they do, those designs appear in this grid for printing
+           and the edible-print download.</p>
+      </div>
     </div>;
   }
 
   return <div>
     {err && <div className="wizard-err" style={{margin:'0 0 12px'}}>{err}</div>}
+
+    <NotesBanner/>
 
     <div className="production-toolbar">
       <div className="filters">
@@ -174,6 +217,7 @@ function CakeCardProd({row, onLightbox}) {
       <div className="left">
         <div className="co">{r.company || '(no company)'}</div>
         <div className="addr">{[r.address, r.city].filter(Boolean).join(' · ') || '(no address)'}</div>
+        {r.notes && <div className="note">📝 {r.notes}</div>}
       </div>
       <span className={'source ' + sourceCls}>{sourceLabel}</span>
     </div>

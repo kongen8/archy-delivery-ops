@@ -3,13 +3,23 @@
 // browser writes safe; ingestFile() routes through the edge function so
 // the AI/geocode/area-match pipeline stays server-side.
 const Customer = {
-  async createDraftCampaign(customer_id, name) {
+  async createDraftCampaign(customer_id, name, notes) {
     if (!sb) throw new Error('sb not ready');
+    const insert = { customer_id, name, status: 'draft' };
+    // Trim and ignore empty so a blank textarea doesn't write '' to the column.
+    if (notes && notes.trim()) insert.notes = notes.trim();
     const { data, error } = await sb.from('campaigns')
-      .insert({ customer_id, name, status: 'draft' })
+      .insert(insert)
       .select('*').single();
     if (error) throw error;
     return data;
+  },
+
+  async setCampaignNote(campaign_id, note) {
+    if (!sb) throw new Error('sb not ready');
+    const value = note && note.trim() ? note.trim() : null;
+    const { error } = await sb.from('campaigns').update({ notes: value }).eq('id', campaign_id);
+    if (error) throw error;
   },
 
   async finalizeCampaign(id) {
@@ -21,7 +31,7 @@ const Customer = {
   async listRecipients(campaign_id) {
     if (!sb) throw new Error('sb not ready');
     const { data, error } = await sb.from('recipients')
-      .select('id, company, contact_name, phone, email, address, city, state, zip, lat, lon, assignment_status, customizations, bakery_id, bakery:bakeries(name)')
+      .select('id, company, contact_name, phone, email, address, city, state, zip, notes, lat, lon, assignment_status, customizations, bakery_id, bakery:bakeries(name)')
       .eq('campaign_id', campaign_id)
       .order('company');
     if (error) throw error;
@@ -71,7 +81,18 @@ const Customer = {
       state: fields.state ?? null,
       zip: fields.zip ?? null,
     };
+    // Notes is optional on the form — only write it when the caller actually
+    // included the key, so the simpler "Edit address" flow doesn't blow away
+    // an existing note by passing undefined.
+    if ('notes' in fields) update.notes = fields.notes && fields.notes.trim() ? fields.notes.trim() : null;
     const { error } = await sb.from('recipients').update(update).eq('id', id);
+    if (error) throw error;
+  },
+
+  async setRecipientNote(recipient_id, note) {
+    if (!sb) throw new Error('sb not ready');
+    const value = note && note.trim() ? note.trim() : null;
+    const { error } = await sb.from('recipients').update({ notes: value }).eq('id', recipient_id);
     if (error) throw error;
   },
 

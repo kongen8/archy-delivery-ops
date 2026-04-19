@@ -3,7 +3,7 @@
 // per-source-column { mapping, confidence } in the same shape the edge
 // function produces, so the wizard can render a single "AI failed" path.
 
-const TARGETS = ['company', 'contact_name', 'phone', 'email', 'address', 'city', 'state', 'zip'];
+const TARGETS = ['company', 'contact_name', 'phone', 'email', 'address', 'city', 'state', 'zip', 'notes'];
 
 // Synonyms are stored already-normalized (lowercase, alphanumeric+space only).
 // Mirror this table verbatim in supabase/functions/ingest-recipients/ai.ts —
@@ -17,6 +17,7 @@ const SYNONYMS = {
   city: ['city', 'city town', 'town', 'municipality'],
   state: ['state', 'province', 'region', 'st', 'state province'],
   zip: ['zip', 'zip code', 'postal', 'postal code', 'postcode'],
+  notes: ['notes', 'note', 'comment', 'comments', 'memo', 'message', 'special instructions', 'instructions', 'delivery notes', 'delivery instructions'],
 };
 
 function normalize(s) {

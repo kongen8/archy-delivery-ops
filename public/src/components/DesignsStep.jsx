@@ -19,6 +19,18 @@ function DesignsStep({campaign, customerId, onBack, onFinalize}) {
   const [recipients, setRecipients] = useState([]);
   const [editing, setEditing] = useState(null); // null | 'add' | <recipient row>
 
+  const [campaignNote, setCampaignNote] = useState(campaign.notes || '');
+  const [savingNote, setSavingNote] = useState(false);
+  const noteDirty = (campaignNote || '') !== (campaign.notes || '');
+  async function saveNote() {
+    setSavingNote(true);
+    try {
+      await Customer.setCampaignNote(campaign.id, campaignNote);
+      campaign.notes = campaignNote || null;
+    } catch (e) { setErr(e.message || String(e)); }
+    setSavingNote(false);
+  }
+
   const reload = useCallback(async () => {
     try { setRecipients(await Customer.listRecipients(campaign.id)); }
     catch (e) { setErr(e.message || String(e)); }
@@ -88,6 +100,25 @@ function DesignsStep({campaign, customerId, onBack, onFinalize}) {
     </div>
 
     {err && <div className="wizard-err" style={{margin:0}}>{err}</div>}
+
+    <div className="campaign-note-block">
+      <h3 className="designs-section-title">
+        <span>Campaign note</span>
+        {noteDirty && <button className="btn-primary" style={{fontSize:12,padding:'6px 12px'}} disabled={savingNote} onClick={saveNote}>
+          {savingNote ? 'Saving…' : 'Save note'}
+        </button>}
+      </h3>
+      <textarea
+        value={campaignNote}
+        onChange={e => setCampaignNote(e.target.value)}
+        placeholder="Anything the bakery should know about this whole campaign — allergens, timing, branding."
+        rows={2}
+        style={{width:'100%',padding:'8px 10px',border:'1px solid #d1d5db',borderRadius:6,fontFamily:'inherit',fontSize:13,resize:'vertical',boxSizing:'border-box'}}
+      />
+      <div style={{fontSize:11,color:'#9ca3af',marginTop:4}}>
+        We'll do our best to honor special requests but can't guarantee them.
+      </div>
+    </div>
 
     <div>
       <h3 className="designs-section-title"><span>Campaign default</span></h3>

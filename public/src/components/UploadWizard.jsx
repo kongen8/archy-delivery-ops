@@ -11,6 +11,7 @@
 function UploadWizard({customerId, campaignId}){
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
+  const [campaignNote, setCampaignNote] = useState('');
   const [file, setFile] = useState(null);
   const [parsed, setParsed] = useState(null);
   const [err, setErr] = useState('');
@@ -23,7 +24,7 @@ function UploadWizard({customerId, campaignId}){
     (async () => {
       const { data: c } = await sb.from('campaigns').select('*').eq('id', campaignId).maybeSingle();
       if (!c) return;
-      setCampaign(c); setName(c.name || '');
+      setCampaign(c); setName(c.name || ''); setCampaignNote(c.notes || '');
       if (c.status === 'active') { navigate('#/customer/' + customerId); return; }
       const { count } = await sb.from('recipients').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId);
       // Recipients already exist → skip File + Columns and land on Designs.
@@ -47,9 +48,13 @@ function UploadWizard({customerId, campaignId}){
     try {
       let camp = campaign;
       if (!camp) {
-        camp = await Customer.createDraftCampaign(customerId, name.trim());
+        camp = await Customer.createDraftCampaign(customerId, name.trim(), campaignNote);
         setCampaign(camp);
         navigate('#/customer/' + customerId + '/upload/' + camp.id);
+      } else if ((camp.notes || '') !== (campaignNote || '')) {
+        // Customer edited the note on a resumed draft.
+        await Customer.setCampaignNote(camp.id, campaignNote);
+        setCampaign({ ...camp, notes: campaignNote || null });
       }
       setStep(2);
     } catch (e) { setErr(e.message || String(e)); }
@@ -78,9 +83,22 @@ function UploadWizard({customerId, campaignId}){
           <label>Campaign name</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Q3 2026 deliveries"/>
         </div>
+        <div className="wizard-field">
+          <label>Campaign note <span style={{color:'#9ca3af',fontWeight:400}}>(optional)</span></label>
+          <textarea
+            value={campaignNote}
+            onChange={e => setCampaignNote(e.target.value)}
+            placeholder="Anything the bakery should know about this whole campaign — e.g. allergens to avoid, preferred drop-off windows."
+            rows={3}
+            style={{width:'100%',padding:'8px 10px',border:'1px solid #d1d5db',borderRadius:6,fontFamily:'inherit',fontSize:13,resize:'vertical',boxSizing:'border-box'}}
+          />
+          <div style={{fontSize:11,color:'#9ca3af',marginTop:4}}>
+            We'll do our best to honor special requests but can't guarantee them.
+          </div>
+        </div>
         <div className="wizard-dropzone">
           <input type="file" accept=".csv,.xlsx" onChange={e => onPickFile(e.target.files[0])}/>
-          <div className="wizard-dropzone-hint">CSV or XLSX, up to 5,000 rows</div>
+          <div className="wizard-dropzone-hint">CSV or XLSX, up to 5,000 rows. Add a "notes" column for per-recipient instructions.</div>
         </div>
         {parsed && <div className="wizard-preview">
           <div className="wizard-preview-meta">{parsed.rows.length} rows · {parsed.headers.length} columns</div>
@@ -138,7 +156,7 @@ function WizardStepRail({n, label, active, done}) {
 // rows). We present the heuristic guess up front so the table never starts
 // empty even if the customer's network is slow / AI is down.
 function ColumnMappingStep({parsed, onBack, onContinue, campaign, file}) {
-  const TARGETS = ['', 'company', 'contact_name', 'phone', 'email', 'address', 'city', 'state', 'zip'];
+  const TARGETS = ['', 'company', 'contact_name', 'phone', 'email', 'address', 'city', 'state', 'zip', 'notes'];
   const initial = useMemo(() => suggestMapping(parsed.headers), [parsed.headers]);
   const [mapping, setMapping] = useState(initial.mapping);
   const confidence = initial.confidence;
@@ -293,7 +311,21 @@ function RecipientRow({row, bucket, onChanged}) {
     city: row.city || '',
     state: row.state || '',
     zip: row.zip || '',
+    notes: row.notes || '',
   });
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteDraft, setNoteDraft] = useState(row.notes || '');
+  const [savingNote, setSavingNote] = useState(false);
+
+  async function saveNote() {
+    setSavingNote(true);
+    try {
+      await Customer.setRecipientNote(row.id, noteDraft);
+      setEditingNote(false);
+      onChanged();
+    } catch (e) { setErr(e.message || String(e)); }
+    setSavingNote(false);
+  }
 
   async function accept(fields) {
     setWorking(true); setErr('');
@@ -306,6 +338,11 @@ function RecipientRow({row, bucket, onChanged}) {
         await Customer.retryGeocode(row.id, {
           address: f.address, city: f.city, state: f.state, zip: f.zip,
         });
+        // retryGeocode doesn't touch notes — persist any note edit separately
+        // so the customer's edit during the same Save click isn't dropped.
+        if ((f.notes || '') !== (row.notes || '')) {
+          await Customer.setRecipientNote(row.id, f.notes);
+        }
       } else {
         await Customer.acceptRecipient(row.id, f);
       }
@@ -350,11 +387,30 @@ function RecipientRow({row, bucket, onChanged}) {
           <input value={draft.city} onChange={e => setDraft(d => ({...d, city: e.target.value}))} placeholder="City"/>
           <input value={draft.state} onChange={e => setDraft(d => ({...d, state: e.target.value}))} placeholder="ST" style={{width:60}}/>
           <input value={draft.zip} onChange={e => setDraft(d => ({...d, zip: e.target.value}))} placeholder="ZIP" style={{width:80}}/>
+          <textarea
+            value={draft.notes}
+            onChange={e => setDraft(d => ({...d, notes: e.target.value}))}
+            placeholder="Note for this recipient (optional) — e.g. 'deliver before 3pm', 'leave at front desk'"
+            rows={2}
+            style={{flexBasis:'100%',padding:'6px 8px',border:'1px solid #d1d5db',borderRadius:6,fontFamily:'inherit',fontSize:12,resize:'vertical'}}
+          />
         </div>
       ) : (
         <>
           <div className="wizard-row-name">{row.company || <em style={{color:'#9ca3af'}}>(no company)</em>}</div>
           <div className="wizard-row-addr">{[row.address, row.city, row.state, row.zip].filter(Boolean).join(', ') || <em style={{color:'#9ca3af'}}>(no address)</em>}</div>
+          {row.notes && !editingNote && <div className="wizard-row-note" style={{marginTop:4,fontSize:12,color:'#7c3aed',background:'#faf5ff',padding:'4px 8px',borderRadius:4,borderLeft:'2px solid #7c3aed'}}>
+            <span style={{fontWeight:600}}>Note: </span>{row.notes}
+            <button onClick={() => { setNoteDraft(row.notes || ''); setEditingNote(true); }} style={{background:'none',border:'none',color:'#7c3aed',fontSize:11,marginLeft:6,cursor:'pointer',textDecoration:'underline',padding:0}}>edit</button>
+          </div>}
+          {!row.notes && !editingNote && <button onClick={() => { setNoteDraft(''); setEditingNote(true); }} style={{background:'none',border:'none',color:'#9ca3af',fontSize:11,cursor:'pointer',textDecoration:'underline',padding:0,marginTop:4}}>+ add note</button>}
+          {editingNote && <div style={{marginTop:6}}>
+            <textarea value={noteDraft} onChange={e => setNoteDraft(e.target.value)} rows={2} placeholder="Note for this recipient" style={{width:'100%',padding:'6px 8px',border:'1px solid #d1d5db',borderRadius:6,fontFamily:'inherit',fontSize:12,resize:'vertical',boxSizing:'border-box'}}/>
+            <div style={{marginTop:4,display:'flex',gap:6}}>
+              <button className="btn-primary" disabled={savingNote} onClick={saveNote} style={{padding:'4px 10px',fontSize:12}}>{savingNote ? 'Saving…' : 'Save note'}</button>
+              <button className="btn-ghost" disabled={savingNote} onClick={() => setEditingNote(false)} style={{padding:'4px 10px',fontSize:12}}>Cancel</button>
+            </div>
+          </div>}
           {err && <div style={{fontSize:11,color:'#991b1b',marginTop:4}}>{err}</div>}
         </>
       )}

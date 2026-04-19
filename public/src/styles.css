@@ -229,6 +229,7 @@ body{background:#f8f7f4}
 .cake-card-prod .body .left{min-width:0;flex:1}
 .cake-card-prod .body .co{font-size:13px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cake-card-prod .body .addr{font-size:11px;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cake-card-prod .body .note{font-size:11px;color:#7c3aed;background:#faf5ff;border-left:2px solid #7c3aed;padding:4px 6px;margin-top:6px;border-radius:3px;line-height:1.35;white-space:normal;word-break:break-word}
 .cake-card-prod .body .source{font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em;font-weight:600;flex-shrink:0}
 .cake-card-prod .body .source.override{color:#7c3aed}
 .cake-card-prod .body .source.partial{color:#d97706}
@@ -248,6 +249,15 @@ body{background:#f8f7f4}
 .address-suggest-item.active{background:#f3f4f6}
 .address-suggest-text{color:#111;font-weight:500}
 .address-suggest-sub{color:#6b7280;font-size:11px;margin-top:2px}
+
+/* ===== Customer notes (Plan 5 polish · campaign-level + recipient-level) ===== */
+.production-notes{display:flex;flex-direction:column;gap:8px;margin:0 0 16px}
+.production-note-banner{background:#faf5ff;border:1px solid #e9d5ff;border-left:4px solid #7c3aed;border-radius:6px;padding:10px 14px}
+.production-note-banner .note-meta{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.production-note-banner .note-tag{background:#7c3aed;color:#fff;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 6px;border-radius:3px}
+.production-note-banner .note-camp{font-size:12px;color:#6b21a8;font-weight:600}
+.production-note-banner .note-body{font-size:13px;color:#374151;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.campaign-note-block{background:#fafaf9;border:1px solid #e5e7eb;border-radius:8px;padding:14px}
 
 /* ===== Box card print sheet (Plan 5 Task 9) =====
    Spec deviation note: design spec says "8 per letter sheet" at 4×6 portrait,
