@@ -4,7 +4,7 @@
 // response_format json_object so output is parseable.
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 const MODEL = 'gpt-4o-mini';
-const TARGETS = ['company', 'contact_name', 'phone', 'email', 'address', 'city', 'state', 'zip'];
+const TARGETS = ['company', 'contact_name', 'phone', 'email', 'address', 'city', 'state', 'zip', 'notes'];
 
 export interface MappingResult {
   mapping: Record<string, string | null>;
@@ -56,6 +56,7 @@ const SYNONYMS: Record<string, string[]> = {
   city: ['city', 'city town', 'town', 'municipality'],
   state: ['state', 'province', 'region', 'st', 'state province'],
   zip: ['zip', 'zip code', 'postal', 'postal code', 'postcode'],
+  notes: ['notes', 'note', 'comment', 'comments', 'memo', 'message', 'special instructions', 'instructions', 'delivery notes', 'delivery instructions'],
 };
 
 function normalize(s: string): string {
@@ -71,6 +72,7 @@ export interface NormalizedRow {
   city: string | null;
   state: string | null;
   zip: string | null;
+  notes: string | null;
   confidence: 'low' | 'medium' | 'high';
 }
 
@@ -103,8 +105,10 @@ export async function aiNormalizeRows(rows: Record<string, string>[]): Promise<N
     {"address": "12 Oak Ave, Boston, MA 02118"}       → address="12 Oak Ave", city="Boston", state="MA", zip="02118".
     {"address": "PO Box 17"}                          → address="PO Box 17", city=null, state=null, zip=null.
 - For fields not present in the input AND not derivable, return null.
+- "notes" is free-form text from the customer (e.g. "deliver before 3pm",
+  "anniversary surprise"). Pass through as-is when present; never invent it.
 - Return per-row "confidence": "low" when company OR address is obviously corrupted, "high" otherwise, "medium" in between.
-Return JSON: {"rows": [<NormalizedRow>...]} with all 9 keys (company, contact_name, phone, email, address, city, state, zip, confidence) in the SAME order as input.
+Return JSON: {"rows": [<NormalizedRow>...]} with all 10 keys (company, contact_name, phone, email, address, city, state, zip, notes, confidence) in the SAME order as input.
 
 Input rows: ${JSON.stringify(compactRows)}`;
 

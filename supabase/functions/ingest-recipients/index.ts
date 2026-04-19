@@ -15,7 +15,7 @@ interface IngestRequest {
   ai_disabled?: boolean;
 }
 
-const TARGETS = ['company', 'contact_name', 'phone', 'email', 'address', 'city', 'state', 'zip'] as const;
+const TARGETS = ['company', 'contact_name', 'phone', 'email', 'address', 'city', 'state', 'zip', 'notes'] as const;
 type Target = typeof TARGETS[number];
 
 function corsHeaders() {
@@ -154,6 +154,7 @@ Deno.serve(async (req) => {
       phone: m.phone || null, email: m.email || null,
       address: m.address || null, city: m.city || null,
       state: m.state || null, zip: m.zip || null,
+      notes: m.notes || null,
       confidence: 'high',
     }));
   } else {
@@ -169,6 +170,7 @@ Deno.serve(async (req) => {
           phone: m.phone || null, email: m.email || null,
           address: m.address || null, city: m.city || null,
           state: m.state || null, zip: m.zip || null,
+          notes: m.notes || null,
           confidence: 'high',
         }));
       }
@@ -212,6 +214,7 @@ Deno.serve(async (req) => {
       phone: n.phone, email: n.email,
       address: n.address || '(unknown)',
       city: n.city, state: n.state, zip: n.zip,
+      notes: n.notes,
       lat: g?.lat ?? null, lon: g?.lon ?? null,
       assignment_status: bucket,
       legacy_id: await legacyId(n.company || '', n.address || ''),
