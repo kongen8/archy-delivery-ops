@@ -18,6 +18,24 @@ const Customer = {
     if (error) throw error;
   },
 
+  // Soft-delete a draft campaign. Only drafts are deletable; the .eq filters
+  // make this a no-op (data === null) if the row was promoted to a non-draft
+  // status or already deleted between render and click. The cascading
+  // recipients/routes rows stay in the database — restoring just clears
+  // deleted_at.
+  async deleteDraftCampaign(id) {
+    if (!sb) throw new Error('sb not ready');
+    const { data, error } = await sb.from('campaigns')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('status', 'draft')
+      .is('deleted_at', null)
+      .select('id')
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error('Campaign cannot be deleted (not a draft).');
+  },
+
   async listRecipients(campaign_id) {
     if (!sb) throw new Error('sb not ready');
     const { data, error } = await sb.from('recipients')
