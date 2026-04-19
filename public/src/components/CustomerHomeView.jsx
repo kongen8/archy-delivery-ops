@@ -7,7 +7,6 @@ function CustomerHomeView({customerId}){
   useEffect(()=>{(async()=>{
     try{
       if(!sb){setState(s=>({...s,err:'Supabase not configured',loading:false}));return;}
-      setState(s=>({...s,loading:true}));
       const{customer,campaigns}=await Admin.getCustomer(customerId);
       const counts={};const progress={};
       for(const camp of campaigns){
@@ -66,6 +65,7 @@ function CampaignCard({campaign,customerId,counts,progress,onDeleted}){
     try{
       await Customer.deleteDraftCampaign(campaign.id);
       onDeleted&&onDeleted();
+      setDeleting(false);
     }catch(err){
       setDeleteErr(err.message||String(err));
       setDeleting(false);
