@@ -18,24 +18,6 @@ const Customer = {
     if (error) throw error;
   },
 
-  // Soft-delete a draft campaign. Only drafts are deletable; the .eq filters
-  // make this a no-op (data === null) if the row was promoted to a non-draft
-  // status or already deleted between render and click. The cascading
-  // recipients/routes rows stay in the database — restoring just clears
-  // deleted_at.
-  async deleteDraftCampaign(id) {
-    if (!sb) throw new Error('sb not ready');
-    const { data, error } = await sb.from('campaigns')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id)
-      .eq('status', 'draft')
-      .is('deleted_at', null)
-      .select('id')
-      .maybeSingle();
-    if (error) throw error;
-    if (!data) throw new Error('Campaign cannot be deleted (not a draft).');
-  },
-
   async listRecipients(campaign_id) {
     if (!sb) throw new Error('sb not ready');
     const { data, error } = await sb.from('recipients')
@@ -120,6 +102,53 @@ const Customer = {
     });
     if (!res.ok) throw new Error('retry geocode failed: ' + res.status + ' ' + await res.text());
     return await res.json();
+  },
+
+  // ===== Plan 5 — design helpers =====
+
+  async setCampaignDefaultDesign(campaign_id, design) {
+    if (!sb) throw new Error('sb not ready');
+    const { error } = await sb.from('campaigns')
+      .update({ default_design: design || {} })
+      .eq('id', campaign_id);
+    if (error) throw error;
+  },
+
+  // Updates ONLY the design-relevant keys on a recipient's customizations
+  // jsonb, preserving any other keys (e.g. Plan 3's `skipped: true`).
+  async setRecipientOverride(recipient_id, design) {
+    if (!sb) throw new Error('sb not ready');
+    const { data: r, error: rErr } = await sb.from('recipients')
+      .select('customizations').eq('id', recipient_id).single();
+    if (rErr) throw rErr;
+    const next = { ...(r?.customizations || {}) };
+    if (design.cake_image_url === null || design.cake_image_url === '') delete next.cake_image_url;
+    else if (design.cake_image_url !== undefined) next.cake_image_url = design.cake_image_url;
+    if (design.card_image_url === null || design.card_image_url === '') delete next.card_image_url;
+    else if (design.card_image_url !== undefined) next.card_image_url = design.card_image_url;
+    const { error } = await sb.from('recipients')
+      .update({ customizations: next }).eq('id', recipient_id);
+    if (error) throw error;
+  },
+
+  async removeRecipientOverride(recipient_id) {
+    return this.setRecipientOverride(recipient_id, { cake_image_url: null, card_image_url: null });
+  },
+
+  // Uploads a Blob to cake-prints/<campaign>/<kind>_<recipient|default>.png
+  // and returns the public URL. Overwrites in place — Storage path is
+  // deterministic so re-uploading a slot doesn't leave orphaned blobs.
+  // We append a ?v=<ts> cache-buster so the CDN-cached prior version of
+  // a re-uploaded path isn't served to the browser.
+  async uploadDesignAsset(campaign_id, kind, recipient_id_or_default, blob) {
+    if (!sb) throw new Error('sb not ready');
+    if (kind !== 'cake' && kind !== 'card') throw new Error('kind must be cake|card');
+    const path = `${campaign_id}/${kind}_${recipient_id_or_default}.png`;
+    const { error } = await sb.storage.from('cake-prints')
+      .upload(path, blob, { upsert: true, contentType: 'image/png' });
+    if (error) throw error;
+    const { data } = sb.storage.from('cake-prints').getPublicUrl(path);
+    return data.publicUrl + '?v=' + Date.now();
   },
 };
 
