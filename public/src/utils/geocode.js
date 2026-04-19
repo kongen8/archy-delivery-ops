@@ -60,6 +60,24 @@ async function suggestAddress(query, { sessionToken, proximity, limit = 5, signa
   }
 }
 
+// Pure helper — pulls structured address pieces out of a Mapbox Searchbox v1
+// `feature.properties` object. Returns nulls for absent pieces; never throws.
+// Extracted as its own function so the manual-add form can autofill the
+// city / state / zip inputs the moment the user picks a suggestion (and so
+// the parser is unit-testable without mocking fetch).
+function parseRetrieveContext(properties) {
+  const ctx = (properties && properties.context) || {};
+  const address =
+    (ctx.address && ctx.address.name) ||
+    properties?.address ||
+    null;
+  const city = (ctx.place && ctx.place.name) || null;
+  const state =
+    (ctx.region && (ctx.region.region_code || ctx.region.name)) || null;
+  const zip = (ctx.postcode && ctx.postcode.name) || null;
+  return { address, city, state, zip };
+}
+
 // Retrieve full coords for a suggestion (same sessionToken as the suggest call
 // keeps the search-session billing tier).
 async function retrieveAddress(mapboxId, { sessionToken } = {}) {
@@ -76,9 +94,14 @@ async function retrieveAddress(mapboxId, { sessionToken } = {}) {
     const f = j.features && j.features[0];
     if (!f) return null;
     const [lon, lat] = f.geometry?.coordinates || [];
+    const parts = parseRetrieveContext(f.properties || {});
     return {
       lat, lon,
-      address: f.properties?.full_address || f.properties?.place_formatted || f.properties?.name || '',
+      address: f.properties?.full_address || f.properties?.place_formatted || parts.address || f.properties?.name || '',
+      street: parts.address,
+      city:   parts.city,
+      state:  parts.state,
+      zip:    parts.zip,
     };
   } catch (e) { console.warn('Mapbox retrieve failed:', e); return null; }
 }
@@ -86,3 +109,4 @@ async function retrieveAddress(mapboxId, { sessionToken } = {}) {
 window.geocodeAddress = geocodeAddress;
 window.suggestAddress = suggestAddress;
 window.retrieveAddress = retrieveAddress;
+window.parseRetrieveContext = parseRetrieveContext;

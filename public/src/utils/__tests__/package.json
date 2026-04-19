@@ -1,5 +1,6 @@
 {
   "name": "utils-tests",
+  "private": true,
   "type": "module",
-  "private": true
+  "scripts": { "test": "node --test" }
 }
