@@ -10,7 +10,7 @@ const DB2 = {
       const { data: customer } = await sb.from('customers').select('*').eq('name', 'Archy').maybeSingle();
       if (!customer) return null;
       const { data: campaign } = await sb.from('campaigns')
-        .select('*').eq('customer_id', customer.id).order('created_at').limit(1).maybeSingle();
+        .select('*').eq('customer_id', customer.id).is('deleted_at', null).order('created_at').limit(1).maybeSingle();
       if (!campaign) return null;
       const { data: bakeries } = await sb.from('bakeries').select('*');
       return { customer, campaign, bakeries: bakeries || [] };
