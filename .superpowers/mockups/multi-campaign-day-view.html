@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"/><title>Bakery · day-first ops view</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;color:#111827;background:#f3f4f6}
+  .header{padding:24px 24px 12px;max-width:1400px;margin:0 auto}
+  .header h1{margin:0 0 6px;font-size:22px;font-weight:700}
+  .header p{margin:0;color:#6b7280;font-size:14px;max-width:780px;line-height:1.5}
+  .frame{background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin:16px 24px;max-width:1400px;margin:16px auto;overflow:hidden}
+  /* Top: bakery header */
+  .ops-header{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid #f3f4f6}
+  .ops-header h2{margin:0;font-size:18px;font-weight:700}
+  .ops-header .meta{font-size:12px;color:#6b7280;margin-top:2px}
+  .ops-header .right{display:flex;gap:8px;align-items:center}
+  .btn-ghost{background:#fff;color:#374151;border:1px solid #e5e7eb;padding:7px 12px;border-radius:6px;font-size:13px;cursor:pointer}
+  .btn-primary{background:#111;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-weight:500;font-size:13px;cursor:pointer}
+
+  /* Date strip */
+  .date-strip{display:flex;gap:6px;padding:14px 24px;background:#f9fafb;border-bottom:1px solid #e5e7eb;overflow-x:auto;align-items:center}
+  .date-strip .arrow{padding:6px 10px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;cursor:pointer;color:#6b7280}
+  .date-pill{display:flex;flex-direction:column;align-items:center;padding:8px 14px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;font-size:11px;cursor:pointer;min-width:78px;color:#6b7280;flex-shrink:0}
+  .date-pill .dow{text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .date-pill .day{font-size:18px;font-weight:700;color:#111;line-height:1.1;margin:2px 0}
+  .date-pill .stops{font-size:10px;color:#9ca3af}
+  .date-pill.active{background:#111;color:#fff;border-color:#111}
+  .date-pill.active .day{color:#fff}
+  .date-pill.active .stops{color:#cbd5e1}
+  .date-pill.empty{opacity:.45}
+
+  /* Tabs */
+  .tabs{display:flex;gap:0;border-bottom:1px solid #e5e7eb;padding:0 24px}
+  .tab{background:none;border:none;border-bottom:2px solid transparent;padding:12px 18px;font-size:13px;color:#6b7280;cursor:pointer;font-family:inherit;font-weight:500}
+  .tab.active{color:#111;font-weight:600;border-bottom-color:#111}
+  .tab .pill{display:inline-block;background:#f3f4f6;color:#374151;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:6px}
+
+  /* Toolbar */
+  .toolbar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;background:#f9fafb;border-bottom:1px solid #f3f4f6;gap:14px;flex-wrap:wrap}
+  .toolbar .filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .filter{background:#fff;border:1px solid #e5e7eb;color:#374151;padding:5px 11px;border-radius:999px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .filter.active{background:#111;color:#fff;border-color:#111}
+  .filter .swatch{display:inline-block;width:10px;height:10px;border-radius:2px}
+  .toolbar .actions{display:flex;gap:8px}
+
+  /* Two-pane: route list + map */
+  .body{display:grid;grid-template-columns:1fr 480px;min-height:600px}
+  .route-list{padding:0;overflow:auto;max-height:760px}
+  .day-meta{padding:14px 24px;background:#fff;border-bottom:1px solid #f3f4f6;display:flex;gap:24px;font-size:12px;color:#6b7280}
+  .day-meta strong{color:#111;font-weight:700}
+
+  .driver{padding:0;border-bottom:1px solid #f3f4f6}
+  .driver-header{display:flex;justify-content:space-between;align-items:center;padding:12px 24px;background:#f9fafb}
+  .driver-header h3{margin:0;font-size:13px;font-weight:700;color:#111;text-transform:uppercase;letter-spacing:.04em}
+  .driver-header .stats{font-size:11px;color:#6b7280}
+
+  .stop{display:grid;grid-template-columns:48px 8px 1fr auto;gap:12px;padding:12px 24px;border-top:1px solid #f3f4f6;align-items:center;background:#fff}
+  .stop:first-of-type{border-top:0}
+  .stop .num{font-size:20px;font-weight:800;color:#9ca3af;font-family:ui-monospace,Menlo,monospace;text-align:right}
+  .stop .band{align-self:stretch;border-radius:2px}
+  .stop .info .co{font-size:14px;font-weight:600;color:#111}
+  .stop .info .meta{font-size:11px;color:#6b7280;margin-top:2px;display:flex;gap:10px}
+  .stop .info .meta .camp{font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:10px}
+  .stop .right{display:flex;gap:6px;align-items:center}
+  .stop .status{font-size:10px;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .stop .status.pending{background:#f3f4f6;color:#6b7280}
+  .stop .status.delivered{background:#dcfce7;color:#166534}
+
+  /* Campaign colors */
+  .c-daymaker{background:#7c3aed}
+  .c-archy{background:#0891b2}
+  .c-acme{background:#ea580c}
+  .c-stripe{background:#16a34a}
+  .c-figma{background:#db2777}
+  .c-daymaker-text{color:#7c3aed}
+  .c-archy-text{color:#0891b2}
+  .c-acme-text{color:#ea580c}
+  .c-stripe-text{color:#16a34a}
+  .c-figma-text{color:#db2777}
+
+  /* Map placeholder */
+  .map{background:linear-gradient(135deg,#e0f2fe 0%,#fef3c7 50%,#dcfce7 100%);position:relative;border-left:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:13px}
+  .map .pin{position:absolute;width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 4px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center}
+  .map .pin span{transform:rotate(45deg);color:#fff;font-size:11px;font-weight:700;font-family:ui-monospace,Menlo,monospace}
+  .map .depot{position:absolute;width:34px;height:34px;background:#111;color:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+
+  /* Production summary footer */
+  .prod{padding:18px 24px;background:#fff;border-top:1px solid #e5e7eb;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .prod-stat{display:flex;flex-direction:column}
+  .prod-stat .lbl{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .prod-stat .val{font-size:18px;font-weight:700;color:#111;font-family:ui-monospace,Menlo,monospace}
+</style></head><body>
+
+<div class="header">
+  <h1>Bakery · day-first ops view (cross-campaign)</h1>
+  <p>The bakery picks a date, sees one merged route per driver. Stops are color-banded by campaign. Filter chips isolate one campaign for spot-checks. Production summary at the bottom shows the total cake bake order rolled up across all campaigns.</p>
+</div>
+
+<div class="frame">
+  <div class="ops-header">
+    <div>
+      <h2>Boho Petite</h2>
+      <div class="meta">SF + Peninsula · Wed Nov 18, 2026</div>
+    </div>
+    <div class="right">
+      <button class="btn-ghost">Capacity settings</button>
+      <button class="btn-ghost">Profile · Bakery ▾</button>
+    </div>
+  </div>
+
+  <div class="date-strip">
+    <span class="arrow">‹</span>
+    <div class="date-pill empty"><span class="dow">Mon</span><span class="day">16</span><span class="stops">— stops</span></div>
+    <div class="date-pill"><span class="dow">Tue</span><span class="day">17</span><span class="stops">15 stops · 2 camp</span></div>
+    <div class="date-pill active"><span class="dow">Wed</span><span class="day">18</span><span class="stops">42 stops · 4 camp</span></div>
+    <div class="date-pill"><span class="dow">Thu</span><span class="day">19</span><span class="stops">38 stops · 3 camp</span></div>
+    <div class="date-pill"><span class="dow">Fri</span><span class="day">20</span><span class="stops">22 stops · 3 camp</span></div>
+    <div class="date-pill empty"><span class="dow">Sat</span><span class="day">21</span><span class="stops">— blackout</span></div>
+    <div class="date-pill empty"><span class="dow">Sun</span><span class="day">22</span><span class="stops">— blackout</span></div>
+    <div class="date-pill"><span class="dow">Mon</span><span class="day">23</span><span class="stops">28 stops · 2 camp</span></div>
+    <div class="date-pill"><span class="dow">Tue</span><span class="day">24</span><span class="stops">19 stops · 2 camp</span></div>
+    <span class="arrow">›</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active">Routes <span class="pill">3 drivers</span></button>
+    <button class="tab">Production <span class="pill">42 cakes</span></button>
+    <button class="tab">Photos <span class="pill">0 / 42</span></button>
+  </div>
+
+  <div class="toolbar">
+    <div class="filters">
+      <button class="filter active">All campaigns · 42</button>
+      <button class="filter"><span class="swatch c-daymaker"></span>Daymaker × Archy · 18</button>
+      <button class="filter"><span class="swatch c-archy"></span>Archy direct · 11</button>
+      <button class="filter"><span class="swatch c-stripe"></span>Stripe Welcome · 8</button>
+      <button class="filter"><span class="swatch c-acme"></span>Acme Holidays · 5</button>
+    </div>
+    <div class="actions">
+      <button class="btn-ghost">↻ Re-optimize day</button>
+      <button class="btn-primary">🖨 Print all box labels</button>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="route-list">
+      <div class="day-meta">
+        <span><strong>3</strong> drivers</span>
+        <span><strong>42</strong> stops</span>
+        <span><strong>147</strong> mi total</span>
+        <span><strong>4</strong> campaigns merged</span>
+        <span><strong>0 / 42</strong> delivered</span>
+      </div>
+
+      <div class="driver">
+        <div class="driver-header">
+          <h3>Route 1 · Marcus · SF North</h3>
+          <div class="stats">14 stops · 38 mi · 9 AM start</div>
+        </div>
+
+        <div class="stop"><div class="num">01</div><div class="band c-daymaker"></div><div class="info"><div class="co">Sunset Dermatology</div><div class="meta"><span class="camp c-daymaker-text">Daymaker × Archy</span><span>1801 Irving St</span><span>9:00 – 11:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+
+        <div class="stop"><div class="num">02</div><div class="band c-archy"></div><div class="info"><div class="co">Lee Family Dental</div><div class="meta"><span class="camp c-archy-text">Archy direct</span><span>1234 Oak St</span><span>9:00 – 11:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+
+        <div class="stop"><div class="num">03</div><div class="band c-daymaker"></div><div class="info"><div class="co">Pacific Heights Pediatrics</div><div class="meta"><span class="camp c-daymaker-text">Daymaker × Archy</span><span>2100 Webster St</span><span>9:00 – 11:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+
+        <div class="stop"><div class="num">04</div><div class="band c-daymaker"></div><div class="info"><div class="co">Hayes Valley Family Med</div><div class="meta"><span class="camp c-daymaker-text">Daymaker × Archy</span><span>450 Hayes St</span><span>9:00 – 11:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+
+        <div class="stop"><div class="num">05</div><div class="band c-stripe"></div><div class="info"><div class="co">Mission Bay Orthopedic</div><div class="meta"><span class="camp c-stripe-text">Stripe Welcome</span><span>1500 Owens St</span><span>11:00 – 1:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+
+        <div class="stop"><div class="num">06</div><div class="band c-acme"></div><div class="info"><div class="co">Castro Vision Center</div><div class="meta"><span class="camp c-acme-text">Acme Holidays</span><span>2255 Market St</span><span>11:00 – 1:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+
+        <div class="stop"><div class="num">07</div><div class="band c-daymaker"></div><div class="info"><div class="co">Acme Dental Group</div><div class="meta"><span class="camp c-daymaker-text">Daymaker × Archy</span><span>330 Main St</span><span>11:00 – 1:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+
+        <div class="stop"><div class="num">08</div><div class="band c-daymaker"></div><div class="info"><div class="co">Pacific Heights Cardio</div><div class="meta"><span class="camp c-daymaker-text">Daymaker × Archy</span><span>2333 Buchanan St</span><span>1:00 – 3:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+
+        <div class="stop"><div class="num">09</div><div class="band c-stripe"></div><div class="info"><div class="co">Noe Valley Family Practice</div><div class="meta"><span class="camp c-stripe-text">Stripe Welcome</span><span>3905 24th St</span><span>1:00 – 3:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+      </div>
+
+      <div class="driver">
+        <div class="driver-header">
+          <h3>Route 2 · Priya · Peninsula</h3>
+          <div class="stats">15 stops · 62 mi · 8:30 AM start</div>
+        </div>
+
+        <div class="stop"><div class="num">01</div><div class="band c-figma"></div><div class="info"><div class="co">Stanford Pediatric Group</div><div class="meta"><span class="camp" style="color:#db2777">Figma Goodies</span><span>580 Welch Rd · Palo Alto</span><span>9:00 – 11:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+
+        <div class="stop"><div class="num">02</div><div class="band c-daymaker"></div><div class="info"><div class="co">Stanford Sleep Center</div><div class="meta"><span class="camp c-daymaker-text">Daymaker × Archy</span><span>450 Broadway · Redwood City</span><span>9:00 – 11:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+
+        <div class="stop"><div class="num">03</div><div class="band c-acme"></div><div class="info"><div class="co">Menlo Vision Partners</div><div class="meta"><span class="camp c-acme-text">Acme Holidays</span><span>1300 El Camino · Menlo Park</span><span>9:00 – 11:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+
+        <div class="stop"><div class="num">04</div><div class="band c-archy"></div><div class="info"><div class="co">Burlingame Family Dental</div><div class="meta"><span class="camp c-archy-text">Archy direct</span><span>1212 Burlingame Ave</span><span>11:00 – 1:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+      </div>
+
+      <div class="driver">
+        <div class="driver-header">
+          <h3>Route 3 · Tomas · SF South</h3>
+          <div class="stats">13 stops · 47 mi · 9 AM start</div>
+        </div>
+        <div class="stop"><div class="num">01</div><div class="band c-daymaker"></div><div class="info"><div class="co">Excelsior Dental Care</div><div class="meta"><span class="camp c-daymaker-text">Daymaker × Archy</span><span>4501 Mission St</span><span>9:00 – 11:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+        <div class="stop"><div class="num">02</div><div class="band c-stripe"></div><div class="info"><div class="co">Visitacion Valley Pediatrics</div><div class="meta"><span class="camp c-stripe-text">Stripe Welcome</span><span>66 Raymond Ave</span><span>9:00 – 11:00</span></div></div><div class="right"><span class="status pending">pending</span></div></div>
+      </div>
+    </div>
+
+    <div class="map">
+      <div class="depot" style="top:38%;left:48%">B</div>
+      <div class="pin c-daymaker" style="top:18%;left:32%"><span>1</span></div>
+      <div class="pin c-archy" style="top:22%;left:42%"><span>2</span></div>
+      <div class="pin c-daymaker" style="top:30%;left:54%"><span>3</span></div>
+      <div class="pin c-daymaker" style="top:46%;left:38%"><span>4</span></div>
+      <div class="pin c-stripe" style="top:60%;left:62%"><span>5</span></div>
+      <div class="pin c-acme" style="top:55%;left:28%"><span>6</span></div>
+      <div class="pin c-daymaker" style="top:68%;left:44%"><span>7</span></div>
+      <div class="pin c-daymaker" style="top:50%;left:70%"><span>8</span></div>
+      <div class="pin c-stripe" style="top:78%;left:36%"><span>9</span></div>
+      <div style="position:absolute;bottom:14px;right:14px;background:#fff;padding:8px 12px;border-radius:8px;font-size:11px;color:#374151;box-shadow:0 2px 8px rgba(0,0,0,.08)">Route 1 · 14 stops</div>
+    </div>
+  </div>
+
+  <div class="prod">
+    <div class="prod-stat"><span class="lbl">Total cakes today</span><span class="val">42</span></div>
+    <div class="prod-stat"><span class="lbl">Daymaker × Archy</span><span class="val c-daymaker-text">18</span></div>
+    <div class="prod-stat"><span class="lbl">Archy direct</span><span class="val c-archy-text">11</span></div>
+    <div class="prod-stat"><span class="lbl">Stripe Welcome</span><span class="val c-stripe-text">8</span></div>
+    <div class="prod-stat"><span class="lbl">Acme Holidays</span><span class="val c-acme-text">5</span></div>
+    <div class="prod-stat"><span class="lbl">Capacity used</span><span class="val">42 / 80</span></div>
+    <div style="flex:1"></div>
+    <button class="btn-ghost">↓ Edible prints (.zip)</button>
+    <button class="btn-primary">🖨 Box cards + labels</button>
+  </div>
+</div>
+
+</body></html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"/><title>Multi-campaign · External box labels</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;color:#111827;background:#f3f4f6}
+  .header{padding:32px 32px 12px;max-width:1400px;margin:0 auto}
+  .header h1{margin:0 0 6px;font-size:24px;font-weight:700}
+  .header p{margin:0;color:#6b7280;font-size:14px;max-width:780px;line-height:1.5}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:24px 32px;max-width:1400px;margin:0 auto}
+  .full{padding:0 32px 32px;max-width:1400px;margin:0 auto}
+  .panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px}
+  .panel h2{margin:0 0 4px;font-size:16px;font-weight:700}
+  .panel .sub{margin:0 0 18px;color:#6b7280;font-size:13px}
+
+  /* Single 4x2" label */
+  .label{width:384px;height:192px;background:#fff;border:1px dashed #cbd5e1;display:grid;grid-template-rows:auto 1fr auto;position:relative;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.06);margin:0 auto}
+  .label .band{height:18px;display:flex;align-items:center;padding:0 12px;color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;justify-content:space-between}
+  .label .body{padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+  .label .stop-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .label .stop{font-size:42px;font-weight:800;line-height:1;color:#111;font-family:ui-monospace,Menlo,monospace}
+  .label .meta{display:flex;flex-direction:column;gap:1px;text-align:right;font-size:10px;color:#6b7280;line-height:1.3}
+  .label .co{font-size:18px;font-weight:700;color:#111;line-height:1.15;margin-top:4px}
+  .label .addr{font-size:11px;color:#374151;line-height:1.3}
+  .label .footer{padding:6px 12px;background:#f9fafb;font-size:9px;color:#9ca3af;display:flex;justify-content:space-between;border-top:1px solid #f3f4f6}
+  .label .cut{position:absolute;width:8px;height:8px;border:1.5px solid #cbd5e1}
+  .label .cut.tl{top:-1px;left:-1px;border-right:0;border-bottom:0}
+  .label .cut.tr{top:-1px;right:-1px;border-left:0;border-bottom:0}
+  .label .cut.bl{bottom:-1px;left:-1px;border-right:0;border-top:0}
+  .label .cut.br{bottom:-1px;right:-1px;border-left:0;border-top:0}
+
+  /* Color palette per campaign */
+  .c-daymaker{background:#7c3aed}
+  .c-archy{background:#0891b2}
+  .c-acme{background:#ea580c}
+  .c-stripe{background:#16a34a}
+  .c-figma{background:#db2777}
+
+  /* Sheet of 10 (5160-ish) */
+  .sheet-frame{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px}
+  .sheet{width:100%;max-width:660px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#fff;border:1px dashed #cbd5e1;padding:12px}
+  .mini-label{height:120px;border:1px dashed #cbd5e1;background:#fff;display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}
+  .mini-label .band{height:12px;font-size:8px;letter-spacing:.04em;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 8px;text-transform:uppercase}
+  .mini-label .body{padding:8px 10px;display:flex;flex-direction:column;gap:3px}
+  .mini-label .stop-row{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+  .mini-label .stop{font-size:24px;font-weight:800;line-height:1;color:#111;font-family:ui-monospace,Menlo,monospace}
+  .mini-label .meta{display:flex;flex-direction:column;text-align:right;font-size:7px;color:#6b7280;line-height:1.2}
+  .mini-label .co{font-size:11px;font-weight:700;color:#111;line-height:1.1;margin-top:2px}
+  .mini-label .addr{font-size:8px;color:#374151;line-height:1.2}
+  .mini-label .footer{padding:3px 8px;background:#f9fafb;font-size:6px;color:#9ca3af;display:flex;justify-content:space-between;border-top:1px solid #f3f4f6}
+
+  /* Loading shelf visual */
+  .shelf{display:flex;gap:20px;justify-content:center;align-items:flex-end;padding:30px 24px 24px;background:linear-gradient(180deg,#fff 0%,#f9fafb 100%);border:1px solid #e5e7eb;border-radius:12px;overflow-x:auto}
+  .stack{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .stack .stack-label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .box{width:130px;height:94px;background:#fff;border:1px solid #e5e7eb;border-radius:4px;box-shadow:0 2px 4px rgba(0,0,0,.06);position:relative;display:flex;flex-direction:column;overflow:hidden}
+  .box .b-band{height:6px;flex-shrink:0}
+  .box .b-stop{font-size:24px;font-weight:800;text-align:center;font-family:ui-monospace,Menlo,monospace;color:#111;margin-top:8px;line-height:1}
+  .box .b-co{font-size:8px;text-align:center;color:#374151;padding:4px 6px 0;line-height:1.2;font-weight:600}
+  .box .b-camp{font-size:7px;text-align:center;color:#9ca3af;padding:2px 6px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;margin-top:auto;padding-bottom:5px}
+  .stacked{position:relative;height:140px;width:130px}
+  .stacked .box{position:absolute;left:0}
+  .stacked .box:nth-child(1){bottom:0}
+  .stacked .box:nth-child(2){bottom:18px}
+  .stacked .box:nth-child(3){bottom:36px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin:14px 0 0;font-size:12px;color:#374151}
+  .legend .swatch{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:middle}
+</style></head><body>
+
+<div class="header">
+  <h1>External box labels — solving the loading-stage mix-up</h1>
+  <p>A third print artifact alongside the 4×6 box card and 7.5" edible print. Auto-printed in stop order, applied to the outside of every box. Stop number drives loading; campaign color band drives at-a-glance distinction; recipient name confirms the handover at the door.</p>
+</div>
+
+<div class="row">
+  <div class="panel">
+    <h2>Single label · 4×2" (Avery 5163)</h2>
+    <p class="sub">Goes on the lid or side of every box. Driver and bakery never need a pen.</p>
+    <div class="label">
+      <span class="cut tl"></span><span class="cut tr"></span><span class="cut bl"></span><span class="cut br"></span>
+      <div class="band c-daymaker"><span>Daymaker × Archy Holidays 2026</span><span>Wed Nov 18</span></div>
+      <div class="body">
+        <div class="stop-row">
+          <div class="stop">07</div>
+          <div class="meta">
+            <span>Route 2 of 4</span>
+            <span>Driver: Marcus</span>
+            <span>9:00 – 11:00 AM</span>
+          </div>
+        </div>
+        <div class="co">Acme Dental Group</div>
+        <div class="addr">330 Main St, Suite 400 · San Francisco · 94105</div>
+      </div>
+      <div class="footer"><span>Boho Petite</span><span>recipient · 7f3a2c · cake · 12oz Ⓡ</span></div>
+    </div>
+
+    <div class="legend">
+      <span><span class="swatch" style="background:#7c3aed"></span>Daymaker</span>
+      <span><span class="swatch" style="background:#0891b2"></span>Archy direct</span>
+      <span><span class="swatch" style="background:#ea580c"></span>Acme Holidays</span>
+      <span><span class="swatch" style="background:#16a34a"></span>Stripe Welcome</span>
+      <span><span class="swatch" style="background:#db2777"></span>Figma Goodies</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Loading shelf · stop-numbered stacks</h2>
+    <p class="sub">Bakery stages boxes in 10-stop stacks. Driver loads van bottom-up so last-on-first-off matches the route. Box mix-ups become physically harder.</p>
+    <div class="shelf">
+      <div class="stack">
+        <div class="stack-label">Stops 1 – 3</div>
+        <div class="stacked">
+          <div class="box"><div class="b-band c-daymaker"></div><div class="b-stop">03</div><div class="b-co">Pacific Heights Pediatrics</div><div class="b-camp">Daymaker</div></div>
+          <div class="box"><div class="b-band c-archy"></div><div class="b-stop">02</div><div class="b-co">Lee Family Dental</div><div class="b-camp">Archy direct</div></div>
+          <div class="box"><div class="b-band c-daymaker"></div><div class="b-stop">01</div><div class="b-co">Sunset Dermatology</div><div class="b-camp">Daymaker</div></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="stack-label">Stops 4 – 6</div>
+        <div class="stacked">
+          <div class="box"><div class="b-band c-acme"></div><div class="b-stop">06</div><div class="b-co">Castro Vision Center</div><div class="b-camp">Acme Holidays</div></div>
+          <div class="box"><div class="b-band c-stripe"></div><div class="b-stop">05</div><div class="b-co">Mission Bay Ortho</div><div class="b-camp">Stripe Welcome</div></div>
+          <div class="box"><div class="b-band c-daymaker"></div><div class="b-stop">04</div><div class="b-co">Hayes Valley Family</div><div class="b-camp">Daymaker</div></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="stack-label">Stops 7 – 9</div>
+        <div class="stacked">
+          <div class="box"><div class="b-band c-figma"></div><div class="b-stop">09</div><div class="b-co">Stanford Pediatric Group</div><div class="b-camp">Figma Goodies</div></div>
+          <div class="box"><div class="b-band c-daymaker"></div><div class="b-stop">08</div><div class="b-co">Pacific Heights Cardio</div><div class="b-camp">Daymaker</div></div>
+          <div class="box"><div class="b-band c-daymaker"></div><div class="b-stop">07</div><div class="b-co">Acme Dental Group</div><div class="b-camp">Daymaker</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="full">
+  <div class="panel">
+    <h2>Letter sheet · 10-up labels for the office printer</h2>
+    <p class="sub">"Print all box labels for Wed Nov 18" → one or more letter sheets roll off, in stop order. Bakery peels and sticks during boxing.</p>
+    <div class="sheet-frame">
+      <div class="sheet">
+        <div class="mini-label"><div class="band c-daymaker"><span>Daymaker × Archy</span><span>Wed 11/18</span></div><div class="body"><div class="stop-row"><div class="stop">01</div><div class="meta"><span>Rt 2/4 · Marcus</span><span>9–11 AM</span></div></div><div class="co">Sunset Dermatology</div><div class="addr">1801 Irving St · SF · 94122</div></div><div class="footer"><span>Boho Petite</span><span>7f3a2c</span></div></div>
+        <div class="mini-label"><div class="band c-archy"><span>Archy direct</span><span>Wed 11/18</span></div><div class="body"><div class="stop-row"><div class="stop">02</div><div class="meta"><span>Rt 2/4 · Marcus</span><span>9–11 AM</span></div></div><div class="co">Lee Family Dental</div><div class="addr">1234 Oak St · SF · 94117</div></div><div class="footer"><span>Boho Petite</span><span>2b9d11</span></div></div>
+        <div class="mini-label"><div class="band c-daymaker"><span>Daymaker × Archy</span><span>Wed 11/18</span></div><div class="body"><div class="stop-row"><div class="stop">03</div><div class="meta"><span>Rt 2/4 · Marcus</span><span>9–11 AM</span></div></div><div class="co">Pacific Heights Pediatrics</div><div class="addr">2100 Webster St · SF · 94115</div></div><div class="footer"><span>Boho Petite</span><span>4c8e21</span></div></div>
+        <div class="mini-label"><div class="band c-daymaker"><span>Daymaker × Archy</span><span>Wed 11/18</span></div><div class="body"><div class="stop-row"><div class="stop">04</div><div class="meta"><span>Rt 2/4 · Marcus</span><span>9–11 AM</span></div></div><div class="co">Hayes Valley Family Med</div><div class="addr">450 Hayes St · SF · 94102</div></div><div class="footer"><span>Boho Petite</span><span>9d2af7</span></div></div>
+        <div class="mini-label"><div class="band c-stripe"><span>Stripe Welcome Q4</span><span>Wed 11/18</span></div><div class="body"><div class="stop-row"><div class="stop">05</div><div class="meta"><span>Rt 2/4 · Marcus</span><span>11A–1P</span></div></div><div class="co">Mission Bay Orthopedic</div><div class="addr">1500 Owens St · SF · 94158</div></div><div class="footer"><span>Boho Petite</span><span>aa01e2</span></div></div>
+        <div class="mini-label"><div class="band c-acme"><span>Acme Holidays 2026</span><span>Wed 11/18</span></div><div class="body"><div class="stop-row"><div class="stop">06</div><div class="meta"><span>Rt 2/4 · Marcus</span><span>11A–1P</span></div></div><div class="co">Castro Vision Center</div><div class="addr">2255 Market St · SF · 94114</div></div><div class="footer"><span>Boho Petite</span><span>0d4ab9</span></div></div>
+        <div class="mini-label"><div class="band c-daymaker"><span>Daymaker × Archy</span><span>Wed 11/18</span></div><div class="body"><div class="stop-row"><div class="stop">07</div><div class="meta"><span>Rt 2/4 · Marcus</span><span>11A–1P</span></div></div><div class="co">Acme Dental Group</div><div class="addr">330 Main St · SF · 94105</div></div><div class="footer"><span>Boho Petite</span><span>7f3a2c</span></div></div>
+        <div class="mini-label"><div class="band c-daymaker"><span>Daymaker × Archy</span><span>Wed 11/18</span></div><div class="body"><div class="stop-row"><div class="stop">08</div><div class="meta"><span>Rt 2/4 · Marcus</span><span>1–3 PM</span></div></div><div class="co">Pacific Heights Cardio</div><div class="addr">2333 Buchanan St · SF · 94115</div></div><div class="footer"><span>Boho Petite</span><span>3e92cd</span></div></div>
+        <div class="mini-label"><div class="band c-figma"><span>Figma Goodies 2026</span><span>Wed 11/18</span></div><div class="body"><div class="stop-row"><div class="stop">09</div><div class="meta"><span>Rt 2/4 · Marcus</span><span>1–3 PM</span></div></div><div class="co">Stanford Pediatric Group</div><div class="addr">580 Welch Rd · Palo Alto · 94304</div></div><div class="footer"><span>Boho Petite</span><span>b551af</span></div></div>
+        <div class="mini-label"><div class="band c-daymaker"><span>Daymaker × Archy</span><span>Wed 11/18</span></div><div class="body"><div class="stop-row"><div class="stop">10</div><div class="meta"><span>Rt 2/4 · Marcus</span><span>1–3 PM</span></div></div><div class="co">Noe Valley Family Practice</div><div class="addr">3905 24th St · SF · 94114</div></div><div class="footer"><span>Boho Petite</span><span>fc09b8</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body></html>
