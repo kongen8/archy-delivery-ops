@@ -115,7 +115,7 @@ function BakeryHomeView({bakeryId}){
     {bootErr&&<div style={{background:'#fef2f2',color:'#991b1b',padding:12,borderRadius:8,marginBottom:12,fontSize:13}}>{bootErr}</div>}
 
     <div style={{display:'flex',gap:0,marginBottom:20,borderBottom:'1px solid #e2e8f0'}} className="no-print">
-      {[{k:'ops',l:'Operations'},{k:'map',l:'🧁 Map'},{k:'customer',l:'Campaign'},{k:'photos',l:'Photos'}].map(t=>
+      {[{k:'ops',l:'Operations'},{k:'map',l:'🧁 Map'},{k:'customer',l:'Campaign'},{k:'photos',l:'Photos'},{k:'production',l:'Production'}].map(t=>
         <button key={t.k} className={`view-tab ${view===t.k?'active':''}`} onClick={()=>setView(t.k)}>{t.l}</button>
       )}
     </div>
@@ -137,5 +137,6 @@ function BakeryHomeView({bakeryId}){
     {region&&view==='map'&&<MapView regionKey={region} statuses={statuses} routeOverrides={routeOverrides} depotOverrides={depotOverrides}/>}
     {view==='customer'&&<CustomerView statuses={statuses} routeOverrides={routeOverrides}/>}
     {view==='photos'&&<PhotosView routeOverrides={routeOverrides}/>}
+    {view==='production'&&<ProductionTab bakeryId={bakeryId}/>}
   </div>;
 }

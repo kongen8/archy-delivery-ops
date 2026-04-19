@@ -3,6 +3,15 @@ function App(){
   const profile=window.__CURRENT_PROFILE__||{type:'landing'};
   const route=useRoute();
 
+  // BoxCardSheet is mounted unconditionally so the print event handler is
+  // always alive (it returns null until urls are populated).
+  return <>
+    <BoxCardSheet/>
+    <AppRoute profile={profile} route={route}/>
+  </>;
+}
+
+function AppRoute({profile, route}){
   if(profile.type==='admin'){
     return <AdminView route={route}/>;
   }

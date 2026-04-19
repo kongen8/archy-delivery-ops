@@ -1,13 +1,13 @@
 // ===== UPLOAD WIZARD =====
-// Three-step wizard for customer recipient upload.
+// Four-step wizard for customer recipient upload.
 //   Step 1 — pick a CSV/XLSX + name the campaign
-//   Step 2 — confirm AI/heuristic column mapping (Task 11)
-//   Step 3 — tabbed bucket review + per-row actions (Tasks 12 + 13)
+//   Step 2 — confirm AI/heuristic column mapping
+//   Step 3 — tabbed bucket review + per-row actions
+//   Step 4 — designs (Plan 5: cake + box-card images)
 //
 // Resume detection: loading the wizard for an existing campaignId that
-// already has recipients jumps straight to step 3, so re-clicking the
-// campaign card from CustomerHome lands on the review tabs instead of
-// re-uploading.
+// already has recipients jumps straight to step 4 (Designs) — the
+// customer can click ‹ Back to revisit Review if they want.
 function UploadWizard({customerId, campaignId}){
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
@@ -24,10 +24,13 @@ function UploadWizard({customerId, campaignId}){
       const { data: c } = await sb.from('campaigns').select('*').eq('id', campaignId).maybeSingle();
       if (!c) return;
       setCampaign(c); setName(c.name || '');
+      if (c.status === 'active') { navigate('#/customer/' + customerId); return; }
       const { count } = await sb.from('recipients').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId);
-      if ((count || 0) > 0) setStep(3);
+      // Recipients already exist → skip File + Columns and land on Designs.
+      // The customer can ‹ Back to Review if they want to retouch buckets.
+      if ((count || 0) > 0) setStep(4);
     })();
-  }, [campaignId]);
+  }, [campaignId, customerId]);
 
   async function onPickFile(f) {
     setErr(''); setFile(f); setParsed(null);
@@ -58,7 +61,8 @@ function UploadWizard({customerId, campaignId}){
       <div className="wizard-rail-header">Upload</div>
       <WizardStepRail n={1} label="File" active={step===1} done={step>1}/>
       <WizardStepRail n={2} label="Columns" active={step===2} done={step>2}/>
-      <WizardStepRail n={3} label="Review" active={step===3} done={false}/>
+      <WizardStepRail n={3} label="Review" active={step===3} done={step>3}/>
+      <WizardStepRail n={4} label="Designs" active={step===4} done={false}/>
     </aside>
     <main className="wizard-main">
       <header className="wizard-header">
@@ -105,7 +109,17 @@ function UploadWizard({customerId, campaignId}){
         customerId={customerId}
         ingestResult={ingestResult}
         onBack={() => setStep(2)}
+        onContinue={() => setStep(4)}
       />}
+
+      {step === 4 && campaign && <DesignsStep
+        campaign={campaign}
+        customerId={customerId}
+        onBack={() => setStep(3)}
+        onFinalize={async () => {
+          await Customer.finalizeCampaign(campaign.id);
+          navigate('#/customer/' + customerId);
+        }}/>}
     </main>
   </div>;
 }
@@ -191,12 +205,11 @@ function ColumnMappingStep({parsed, onBack, onContinue, campaign, file}) {
 // ===== Step 3: tabbed bucket review =====
 // Re-queries recipients on every action so counts stay live. Per-row
 // actions (accept/edit/skip/retry-geocode) live in RecipientRow below.
-function ReviewStep({campaign, customerId, onBack, ingestResult}) {
+function ReviewStep({campaign, customerId, onBack, onContinue, ingestResult}) {
   const [tab, setTab] = useState('needs_review');
   const [recipients, setRecipients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
-  const [finalizing, setFinalizing] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -228,17 +241,8 @@ function ReviewStep({campaign, customerId, onBack, ingestResult}) {
   const inTab = recipients.filter(r => r.assignment_status === tab);
   const stillProblematic = counts.needs_review + counts.flagged_out_of_area + counts.geocode_failed;
 
-  async function finalize() {
-    setFinalizing(true);
-    try {
-      await Customer.finalizeCampaign(campaign.id);
-      navigate('#/customer/' + customerId);
-    } catch (e) { setErr(e.message); }
-    setFinalizing(false);
-  }
-
   return <section className="wizard-step">
-    <h2>Review &amp; finalize</h2>
+    <h2>Review &amp; finalize · v2</h2>
     <p className="wizard-step-sub">{recipients.length} rows ingested. Tabs show each bucket; counts are live.</p>
     {err && <div className="wizard-err" style={{margin:0}}>{err}</div>}
 
@@ -260,9 +264,7 @@ function ReviewStep({campaign, customerId, onBack, ingestResult}) {
       <div style={{flex:1, fontSize:12, color:'#6b7280', textAlign:'right', marginRight:8}}>
         {counts.assigned} will be delivered. {stillProblematic} still need attention.
       </div>
-      <button className="btn-primary" onClick={finalize} disabled={finalizing}>
-        {finalizing ? 'Finalizing…' : 'Finalize campaign'}
-      </button>
+      <button className="btn-primary" onClick={onContinue}>Continue to designs ›</button>
     </div>
   </section>;
 }
