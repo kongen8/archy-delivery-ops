@@ -61,10 +61,32 @@ async function suggestAddress(query, { sessionToken, proximity, limit = 5, signa
   }
 }
 
+// Pure helper — pulls structured address pieces out of a Mapbox Searchbox v1
+// `feature.properties` object. Returns nulls for absent pieces; never throws.
+// Extracted as its own function so the manual-add form can autofill the
+// city / state / zip inputs the moment the user picks a suggestion (and so
+// the parser is unit-testable without mocking fetch).
+function parseRetrieveContext(properties) {
+  const ctx = (properties && properties.context) || {};
+  const address =
+    (ctx.address && ctx.address.name) ||
+    properties?.address ||
+    (properties?.feature_type === 'address' ? properties?.name : null) ||
+    null;
+  const city =
+    (ctx.place && ctx.place.name) ||
+    (ctx.locality && ctx.locality.name) ||
+    null;
+  const state =
+    (ctx.region && (ctx.region.region_code || ctx.region.name)) || null;
+  const zip = (ctx.postcode && ctx.postcode.name) || null;
+  return { address, city, state, zip };
+}
+
 // Retrieve full coords + structured address parts for a suggestion (same
 // sessionToken as the suggest call keeps the search-session billing tier).
-// Returns { lat, lon, address, city, state, zip, display } so callers can
-// populate every field of an address form in one shot.
+// Returns a superset shape consumed by both AddressTypeahead (uses `address`
+// as the street line) and AddressAutocomplete (uses `street`).
 async function retrieveAddress(mapboxId, { sessionToken } = {}) {
   const key = window.MAPBOX_API_KEY;
   if (!key || !mapboxId) return null;
@@ -83,18 +105,18 @@ async function retrieveAddress(mapboxId, { sessionToken } = {}) {
     const f = j.features && j.features[0];
     if (!f) return null;
     const p = f.properties || {};
-    const ctx = p.context || {};
     const [lon, lat] = f.geometry?.coordinates || [];
-    // Mapbox returns the street line as either `address` (when the whole
-    // suggestion IS an address) or `address.name` (when it's a POI etc).
-    const street = ctx.address?.name || p.address || (p.feature_type === 'address' ? p.name : '') || '';
+    const parts = parseRetrieveContext(p);
+    const street = parts.address || '';
+    const display = p.full_address || p.place_formatted || p.name || '';
     return {
       lat, lon,
       address: street,
-      city: ctx.place?.name || ctx.locality?.name || '',
-      state: ctx.region?.region_code || ctx.region?.name || '',
-      zip: ctx.postcode?.name || '',
-      display: p.full_address || p.place_formatted || p.name || '',
+      street,
+      city:  parts.city  || '',
+      state: parts.state || '',
+      zip:   parts.zip   || '',
+      display,
     };
   } catch (e) { console.warn('Mapbox retrieve failed:', e); return null; }
 }
@@ -102,3 +124,4 @@ async function retrieveAddress(mapboxId, { sessionToken } = {}) {
 window.geocodeAddress = geocodeAddress;
 window.suggestAddress = suggestAddress;
 window.retrieveAddress = retrieveAddress;
+window.parseRetrieveContext = parseRetrieveContext;

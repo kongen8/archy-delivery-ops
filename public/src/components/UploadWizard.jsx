@@ -18,6 +18,9 @@ function UploadWizard({customerId, campaignId}){
   const [working, setWorking] = useState(false);
   const [campaign, setCampaign] = useState(null);
   const [ingestResult, setIngestResult] = useState(null);
+  // 'file' = upload a CSV/XLSX; 'manual' = skip file + columns, go straight
+  // to Review and add recipients one at a time. Toggled from Step 1.
+  const [entryMode, setEntryMode] = useState('file');
 
   useEffect(() => {
     if (campaignId === 'new') return;
@@ -43,7 +46,7 @@ function UploadWizard({customerId, campaignId}){
     } catch (e) { setErr(e.message || String(e)); }
   }
 
-  async function continueToStep2() {
+  async function continueFromStep1() {
     setWorking(true); setErr('');
     try {
       let camp = campaign;
@@ -56,7 +59,8 @@ function UploadWizard({customerId, campaignId}){
         await Customer.setCampaignNote(camp.id, campaignNote);
         setCampaign({ ...camp, notes: campaignNote || null });
       }
-      setStep(2);
+      // Manual mode skips the columns step — there's no file to map.
+      setStep(entryMode === 'manual' ? 3 : 2);
     } catch (e) { setErr(e.message || String(e)); }
     setWorking(false);
   }
@@ -78,7 +82,7 @@ function UploadWizard({customerId, campaignId}){
       {err && <div className="wizard-err">{err}</div>}
 
       {step === 1 && <section className="wizard-step">
-        <h2>Upload your recipient list</h2>
+        <h2>Add your recipients</h2>
         <div className="wizard-field">
           <label>Campaign name</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Q3 2026 deliveries"/>
@@ -96,19 +100,43 @@ function UploadWizard({customerId, campaignId}){
             We'll do our best to honor special requests but can't guarantee them.
           </div>
         </div>
-        <div className="wizard-dropzone">
-          <input type="file" accept=".csv,.xlsx" onChange={e => onPickFile(e.target.files[0])}/>
-          <div className="wizard-dropzone-hint">CSV or XLSX, up to 5,000 rows. Add a "notes" column for per-recipient instructions.</div>
+
+        <div className="wizard-entry-toggle">
+          <button
+            className={'wizard-entry-tab' + (entryMode === 'file' ? ' active' : '')}
+            onClick={() => setEntryMode('file')}>
+            Upload a file
+          </button>
+          <button
+            className={'wizard-entry-tab' + (entryMode === 'manual' ? ' active' : '')}
+            onClick={() => setEntryMode('manual')}>
+            Add one at a time
+          </button>
         </div>
-        {parsed && <div className="wizard-preview">
-          <div className="wizard-preview-meta">{parsed.rows.length} rows · {parsed.headers.length} columns</div>
-          <table className="wizard-preview-table">
-            <thead><tr>{parsed.headers.map(h => <th key={h}>{h}</th>)}</tr></thead>
-            <tbody>{parsed.rows.slice(0,5).map((r,i) => <tr key={i}>{r.map((c,j) => <td key={j}>{c}</td>)}</tr>)}</tbody>
-          </table>
+
+        {entryMode === 'file' && <>
+          <div className="wizard-dropzone">
+            <input type="file" accept=".csv,.xlsx" onChange={e => onPickFile(e.target.files[0])}/>
+            <div className="wizard-dropzone-hint">CSV or XLSX, up to 5,000 rows. Add a "notes" column for per-recipient instructions.</div>
+          </div>
+          {parsed && <div className="wizard-preview">
+            <div className="wizard-preview-meta">{parsed.rows.length} rows · {parsed.headers.length} columns</div>
+            <table className="wizard-preview-table">
+              <thead><tr>{parsed.headers.map(h => <th key={h}>{h}</th>)}</tr></thead>
+              <tbody>{parsed.rows.slice(0,5).map((r,i) => <tr key={i}>{r.map((c,j) => <td key={j}>{c}</td>)}</tr>)}</tbody>
+            </table>
+          </div>}
+        </>}
+
+        {entryMode === 'manual' && <div className="wizard-empty-cta">
+          <div style={{fontSize:14,color:'#374151',marginBottom:4}}>You'll enter recipients one at a time.</div>
+          <div style={{fontSize:12,color:'#6b7280'}}>Click <b>Continue</b> to name the campaign and start adding rows.</div>
         </div>}
+
         <div className="wizard-footer">
-          <button className="btn-primary" disabled={!name.trim() || !parsed || working} onClick={continueToStep2}>
+          <button className="btn-primary"
+            disabled={!name.trim() || (entryMode === 'file' && !parsed) || working}
+            onClick={continueFromStep1}>
             {working ? 'Saving…' : 'Continue'}
           </button>
         </div>
@@ -228,6 +256,7 @@ function ReviewStep({campaign, customerId, onBack, onContinue, ingestResult}) {
   const [recipients, setRecipients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -258,32 +287,49 @@ function ReviewStep({campaign, customerId, onBack, onContinue, ingestResult}) {
   };
   const inTab = recipients.filter(r => r.assignment_status === tab);
   const stillProblematic = counts.needs_review + counts.flagged_out_of_area + counts.geocode_failed;
+  const empty = !loading && recipients.length === 0;
 
   return <section className="wizard-step">
     <h2>Review &amp; finalize · v2</h2>
     <p className="wizard-step-sub">{recipients.length} rows ingested. Tabs show each bucket; counts are live.</p>
     {err && <div className="wizard-err" style={{margin:0}}>{err}</div>}
 
-    <div className="wizard-tabs">
+    <div className="wizard-add-bar">
+      <button className="btn-primary" onClick={() => setShowAdd(true)}>+ Add recipient</button>
+    </div>
+
+    {!empty && <div className="wizard-tabs">
       <Tab label="Assigned" n={counts.assigned} active={tab==='assigned'} onClick={() => setTab('assigned')} color="#15803d"/>
       <Tab label="Needs review" n={counts.needs_review} active={tab==='needs_review'} onClick={() => setTab('needs_review')} color="#7c3aed"/>
       <Tab label="Out of area" n={counts.flagged_out_of_area} active={tab==='flagged_out_of_area'} onClick={() => setTab('flagged_out_of_area')} color="#b45309"/>
       <Tab label="Geocode failed" n={counts.geocode_failed} active={tab==='geocode_failed'} onClick={() => setTab('geocode_failed')} color="#dc2626"/>
-    </div>
+    </div>}
 
     {loading
       ? <div style={{padding:24,color:'#9ca3af'}}>Loading…</div>
-      : inTab.length === 0
-        ? <div className="wizard-empty">Nothing in this bucket. 🎉</div>
-        : <div className="wizard-row-list">{inTab.map(r => <RecipientRow key={r.id} row={r} bucket={tab} onChanged={reload}/>)}</div>}
+      : empty
+        ? <div className="wizard-empty">
+            <div style={{fontSize:14,color:'#374151'}}><b>No recipients yet.</b></div>
+            <div style={{fontSize:12,color:'#6b7280',marginTop:4}}>Click <b>+ Add recipient</b> above to get started.</div>
+          </div>
+        : inTab.length === 0
+          ? <div className="wizard-empty">Nothing in this bucket. 🎉</div>
+          : <div className="wizard-row-list">{inTab.map(r => <RecipientRow key={r.id} row={r} bucket={tab} onChanged={reload}/>)}</div>}
 
     <div className="wizard-footer">
-      <button className="btn-ghost" onClick={onBack}>‹ Back to columns</button>
+      <button className="btn-ghost" onClick={onBack}>‹ Back</button>
       <div style={{flex:1, fontSize:12, color:'#6b7280', textAlign:'right', marginRight:8}}>
-        {counts.assigned} will be delivered. {stillProblematic} still need attention.
+        {empty
+          ? 'Add at least 1 recipient to continue'
+          : `${counts.assigned} will be delivered. ${stillProblematic} still need attention.`}
       </div>
-      <button className="btn-primary" onClick={onContinue}>Continue to designs ›</button>
+      <button className="btn-primary" onClick={onContinue} disabled={empty}>Continue to designs ›</button>
     </div>
+
+    {showAdd && <ManualRecipientForm
+      campaignId={campaign.id}
+      onSaved={() => { reload(); }}
+      onClose={() => setShowAdd(false)}/>}
   </section>;
 }
 

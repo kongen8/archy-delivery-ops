@@ -261,6 +261,120 @@ Deno.test('geocode-single: edits address + re-buckets a flagged row', async () =
 // to raw mapped values via the per-batch try/catch in index.ts, which is
 // exactly what we want in production. Re-enable by deleting `.ignore`
 // once OpenAI quota is no longer a constraint.
+Deno.test('manual-add: inserts a single recipient with provided lat/lon and area-matches', async () => {
+  const { data: boho } = await sb.from('bakeries').select('id').eq('name', 'Boho Petite').maybeSingle();
+  if (!boho) {
+    console.warn('Boho Petite not seeded; skipping');
+    return;
+  }
+  let cust, camp;
+  try {
+    ({ data: cust } = await sb.from('customers').insert({ name: 'TEST_cust_' + Math.random(), access_token: crypto.randomUUID() }).select('*').single());
+    ({ data: camp } = await sb.from('campaigns').insert({ customer_id: cust!.id, name: 'TEST_camp', status: 'draft' }).select('*').single());
+
+    // 633 Folsom St SF — known to fall inside Boho Petite's polygon.
+    const res = await fetch(fnUrl + '/manual-add', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaign_id: camp!.id,
+        company: 'Daymaker HQ',
+        contact_name: 'Front Desk',
+        phone: '415-555-0100',
+        email: 'front@example.com',
+        address: '633 Folsom St',
+        city: 'San Francisco',
+        state: 'CA',
+        zip: '94107',
+        lat: 37.7853,
+        lon: -122.3987,
+      }),
+    });
+    const json = await res.json();
+    assertEquals(res.status, 200);
+    assertEquals(json.assignment_status, 'assigned', 'SF address should land in Boho Petite');
+    assertEquals(json.bakery_id, boho.id);
+    assert(typeof json.recipient_id === 'string');
+
+    const { data: rows } = await sb.from('recipients').select('*').eq('campaign_id', camp!.id);
+    assertEquals(rows!.length, 1);
+    assertEquals(rows![0].company, 'Daymaker HQ');
+    assertEquals(rows![0].contact_name, 'Front Desk');
+    assertEquals(rows![0].address, '633 Folsom St');
+    assertEquals(rows![0].lat, 37.7853);
+    assertEquals(rows![0].lon, -122.3987);
+  } finally {
+    if (camp?.id) {
+      await sb.from('recipients').delete().eq('campaign_id', camp.id);
+      await sb.from('campaigns').delete().eq('id', camp.id);
+    }
+    if (cust?.id) await sb.from('customers').delete().eq('id', cust.id);
+  }
+});
+
+Deno.test('manual-add: a duplicate (same legacy_id) returns the existing row, no second insert', async () => {
+  let cust, camp;
+  try {
+    ({ data: cust } = await sb.from('customers').insert({ name: 'TEST_cust_' + Math.random(), access_token: crypto.randomUUID() }).select('*').single());
+    ({ data: camp } = await sb.from('campaigns').insert({ customer_id: cust!.id, name: 'TEST_camp', status: 'draft' }).select('*').single());
+
+    const body = {
+      campaign_id: camp!.id,
+      company: 'Acme',
+      address: '123 Main St',
+      lat: 37.78, lon: -122.40,
+    };
+    const post = async () => {
+      const r = await fetch(fnUrl + '/manual-add', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      return await r.json();
+    };
+    const first  = await post();
+    const second = await post();
+
+    assertEquals(second.duplicate, true, 'second call should report duplicate');
+    assertEquals(second.recipient_id, first.recipient_id, 'should return the existing row id');
+    const { data: rows } = await sb.from('recipients').select('*').eq('campaign_id', camp!.id);
+    assertEquals(rows!.length, 1, 'only one row should exist');
+  } finally {
+    if (camp?.id) {
+      await sb.from('recipients').delete().eq('campaign_id', camp.id);
+      await sb.from('campaigns').delete().eq('id', camp.id);
+    }
+    if (cust?.id) await sb.from('customers').delete().eq('id', cust.id);
+  }
+});
+
+Deno.test('manual-add: missing company OR address returns 400', async () => {
+  let cust, camp;
+  try {
+    ({ data: cust } = await sb.from('customers').insert({ name: 'TEST_cust_' + Math.random(), access_token: crypto.randomUUID() }).select('*').single());
+    ({ data: camp } = await sb.from('campaigns').insert({ customer_id: cust!.id, name: 'TEST_camp', status: 'draft' }).select('*').single());
+
+    const r1 = await fetch(fnUrl + '/manual-add', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaign_id: camp!.id, address: '123 Main' }),
+    });
+    await r1.json();
+    assertEquals(r1.status, 400);
+
+    const r2 = await fetch(fnUrl + '/manual-add', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaign_id: camp!.id, company: 'Acme' }),
+    });
+    await r2.json();
+    assertEquals(r2.status, 400);
+  } finally {
+    if (camp?.id) await sb.from('campaigns').delete().eq('id', camp.id);
+    if (cust?.id) await sb.from('customers').delete().eq('id', cust.id);
+  }
+});
+
 Deno.test.ignore('ai normalization: messy address gets split into parts', async () => {
   let cust, camp;
   try {

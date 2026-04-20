@@ -125,6 +125,30 @@ const Customer = {
     return await res.json();
   },
 
+  // POSTs a single manually-entered recipient through the edge function so
+  // it goes through the same geocode + area-match + bucket pipeline as a
+  // bulk row. Returns:
+  //   { recipient_id, assignment_status, lat, lon, bakery_id, duplicate }
+  // `duplicate: true` means an existing recipient with the same
+  // (company, address) was returned without a second insert.
+  async addRecipient({ campaign_id, company, contact_name, phone, email,
+                       address, city, state, zip, lat, lon }) {
+    if (!sb) throw new Error('sb not ready');
+    const url = sb.supabaseUrl.replace('.supabase.co', '.functions.supabase.co') + '/ingest-recipients/manual-add';
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + sb.supabaseKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaign_id, company, contact_name, phone, email,
+        address, city, state, zip,
+        lat: typeof lat === 'number' ? lat : null,
+        lon: typeof lon === 'number' ? lon : null,
+      }),
+    });
+    if (!res.ok) throw new Error('addRecipient failed: ' + res.status + ' ' + await res.text());
+    return await res.json();
+  },
+
   // ===== Plan 5 — design helpers =====
 
   async setCampaignDefaultDesign(campaign_id, design) {

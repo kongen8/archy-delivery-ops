@@ -37,10 +37,10 @@
     The full local-asset URL set is rewritten with ?v=BUILD by a tiny inline
     helper below (see <script>__BUILD__</script>).
   -->
-  <script>window.__BUILD__ = '20260419m';</script>
+  <script>window.__BUILD__ = '20260420b';</script>
 
   <!-- App stylesheet -->
-  <link href="./src/styles.css?v=20260419k" rel="stylesheet"/>
+  <link href="./src/styles.css?v=20260420b" rel="stylesheet"/>
 </head>
 <body>
   <div id="root"></div>
@@ -89,16 +89,16 @@
   <script src="./src/utils/image-input.js?v=20260419k"></script>
 
   <!-- Customer-side data layer (Plan 3 + Plan 5 design helpers) -->
-  <script src="./src/db/customer.js?v=20260419k"></script>
+  <script src="./src/db/customer.js?v=20260420b"></script>
 
   <!-- Mapbox public token (browser-safe pk.*) -->
   <script src="./src/config/mapbox.js?v=20260419k"></script>
 
   <!-- Domain constants + pure utilities -->
-  <script src="./src/constants.js?v=20260419k"></script>
-  <script src="./src/utils/format.js?v=20260419k"></script>
-  <script src="./src/utils/osrm.js?v=20260419k"></script>
-  <script src="./src/utils/geocode.js?v=20260419k"></script>
+  <script src="./src/constants.js?v=20260420b"></script>
+  <script src="./src/utils/format.js?v=20260420b"></script>
+  <script src="./src/utils/osrm.js?v=20260420b"></script>
+  <script src="./src/utils/geocode.js?v=20260420b"></script>
 
   <!-- Archy → legacy-shape adapter (bridges new schema to existing components) -->
   <script src="./src/utils/archy-adapter.js?v=20260419k"></script>
@@ -116,25 +116,27 @@
     JSX at runtime. Order matters: each component must be defined before any
     component that references it.
   -->
-  <script type="text/babel" src="./src/components/ProgressBar.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/StopCard.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/DepotManager.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/MapView.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/PrintSheet.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/OpsView.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/CustomerView.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/PhotosView.jsx?v=20260419k"></script>
+  <script type="text/babel" src="./src/components/ProgressBar.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/StopCard.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/AddressAutocomplete.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/DepotManager.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/MapView.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/PrintSheet.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/OpsView.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/CustomerView.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/PhotosView.jsx?v=20260420b"></script>
 
   <!-- Plan 2 views (depend on everything above) -->
-  <script type="text/babel" src="./src/components/ProfileSwitcher.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/DeliveryAreaDraw.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/BakeryEditor.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/CustomerEditor.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/AdminView.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/BakeryHomeView.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/AddressTypeahead.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/CustomerHomeView.jsx?v=20260419k"></script>
-  <script type="text/babel" src="./src/components/UploadWizard.jsx?v=20260419k"></script>
+  <script type="text/babel" src="./src/components/ProfileSwitcher.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/DeliveryAreaDraw.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/BakeryEditor.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/CustomerEditor.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/AdminView.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/BakeryHomeView.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/AddressTypeahead.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/CustomerHomeView.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/ManualRecipientForm.jsx?v=20260420b"></script>
+  <script type="text/babel" src="./src/components/UploadWizard.jsx?v=20260420b"></script>
 
   <!-- Plan 5 design surfaces -->
   <script type="text/babel" src="./src/components/ImageCropper.jsx?v=20260419k"></script>
