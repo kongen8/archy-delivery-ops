@@ -1,5 +1,5 @@
 // ===== PHOTO DATABANK VIEW =====
-function PhotosView({routeOverrides}){
+function PhotosView({routeOverrides,campaignId}){
   const [photos,setPhotos]=useState(null);
   const [regionFilter,setRegionFilter]=useState('all');
   const [search,setSearch]=useState('');
@@ -9,13 +9,25 @@ function PhotosView({routeOverrides}){
   const [refreshing,setRefreshing]=useState(false);
 
   const loadPhotos=useCallback(()=>{
-    if(!DB.ready){setPhotos([]);return;}
+    if(!DB2.ready||!campaignId){setPhotos([]);return;}
     setRefreshing(true);
-    DB.loadAllPhotos().then(rows=>{
-      setPhotos(rows||[]);
+    DB2.loadAllPhotos(campaignId).then(rows=>{
+      // Normalize v2 shape to the legacy {id, photo_url, delivered_at, ...}
+      // shape the rest of this view was written against.
+      const normalized=(rows||[]).map(r=>({
+        id:r.recipient_id,
+        photo_url:r.photo_url,
+        delivered_at:r.delivered_at,
+        updated_at:r.updated_at,
+        status:r.status,
+        note:r.note,
+        _company:r.company,
+        _city:r.city,
+      }));
+      setPhotos(normalized);
       setRefreshing(false);
     });
-  },[]);
+  },[campaignId]);
 
   useEffect(()=>{loadPhotos();},[loadPhotos]);
 
@@ -35,11 +47,15 @@ function PhotosView({routeOverrides}){
   const enriched=useMemo(()=>{
     if(!photos)return null;
     return photos.map(p=>{
-      const stop=stopIndex[p.id]||{};
-      // Fallback: infer region from stop id prefix (before first underscore)
-      let region=stop.region;
+      const hit=stopIndex[p.id];
+      // If the recipient isn't in any current route, fall back to the
+      // company/city we got from the delivery_statuses_v2 JOIN so the
+      // card still has a label.
+      const stop=hit||{co:p._company||'',ci:p._city||''};
+      let region=hit&&hit.region;
       if(!region){
-        const parts=p.id.split('_');
+        // Legacy fallback for Archy-era string ids like "SF_220_Dentistry_21".
+        const parts=(p.id||'').split('_');
         if(REGIONS[parts[0]])region=parts[0];
       }
       return {...p,stop,region:region||'Unknown'};
@@ -126,7 +142,7 @@ function PhotosView({routeOverrides}){
     return d.toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'})+' · '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   };
 
-  if(!DB.ready){
+  if(!DB2.ready){
     return <div style={{padding:24,textAlign:'center',color:'#64748b',fontSize:14}}>
       Photo databank is only available when connected to Supabase.
     </div>;

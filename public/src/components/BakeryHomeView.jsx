@@ -228,7 +228,7 @@ function BakeryHomeView({bakeryId}){
     {region&&view==='ops'&&<OpsView regionKey={region} statuses={statuses} onAction={onAction} onPhotoUpload={onPhotoUpload} routeOverrides={routeOverrides} onRebalance={onRebalance} depotOverrides={depotOverrides} onDepotsChange={onDepotsChange} focusStop={focusStop&&window.REGIONS[region]?._bakeryId===bakeryId?focusStop:null}/>}
     {region&&view==='map'&&<MapView regionKey={region} statuses={statuses} routeOverrides={routeOverrides} depotOverrides={depotOverrides}/>}
     {view==='customer'&&<CustomerView statuses={statuses} routeOverrides={routeOverrides}/>}
-    {view==='photos'&&<PhotosView routeOverrides={routeOverrides}/>}
+    {view==='photos'&&<PhotosView routeOverrides={routeOverrides} campaignId={archyCtx&&archyCtx.campaign&&archyCtx.campaign.id}/>}
     {view==='production'&&<ProductionTab bakeryId={bakeryId}/>}
   </div>;
 }
