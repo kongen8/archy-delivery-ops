@@ -102,7 +102,11 @@
         if (r.bakery_id !== bakery.id) return false;
         if (!Number.isFinite(r.lat) || !Number.isFinite(r.lon)) return false;
         const tag = r.customizations && r.customizations.legacy_region;
-        if (tag) return tag === key;
+        // Honor the legacy-region tag only when the delivery area is itself
+        // a named legacy region. Plan-2 polygons save with name: null and
+        // must fall through to point-in-polygon matching, otherwise tagged
+        // recipients get rejected against the synthetic fallback key.
+        if (tag && area.name) return tag === key;
         return pointInGeometry(r.lon, r.lat, area.geometry);
       });
       if (!matchingRecips.length) continue;
