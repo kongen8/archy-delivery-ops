@@ -1,5 +1,5 @@
 // ===== STOP CARD (with inline photo capture + move) =====
-function StopCard({stop,index,onAction,statuses,onPhotoUpload,onMoveStop,moveTargets,currentDay,currentDrv}){
+function StopCard({stop,index,onAction,statuses,onPhotoUpload,onMoveStop,moveTargets,currentDay,currentDrv,highlight}){
   const status=statuses[stop.id]||'pending';
   const mapUrl=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.ad+', '+stop.ci+', '+stop.st+' '+stop.zp)}`;
   const isDelivered=status==='delivered';
@@ -29,8 +29,11 @@ function StopCard({stop,index,onAction,statuses,onPhotoUpload,onMoveStop,moveTar
     }
   };
 
-  return <div className={`stop-card ${isDelivered?'delivered':''} ${isFailed?'failed':''}`}
-    style={{background:'white',borderRadius:8,padding:'12px 16px',marginBottom:8}}>
+  return <div id={`stop-${stop.id}`} className={`stop-card ${isDelivered?'delivered':''} ${isFailed?'failed':''}`}
+    style={{
+      background:'white',borderRadius:8,padding:'12px 16px',marginBottom:8,
+      ...(highlight?{boxShadow:'0 0 0 2px #2563eb',transition:'box-shadow .2s'}:{})
+    }}>
     <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{display:'none'}}
       onChange={handlePhotoTaken}/>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>

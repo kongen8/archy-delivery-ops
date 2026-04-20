@@ -1,5 +1,5 @@
 // ===== OPERATIONS VIEW (merged bakery + driver) =====
-function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onRebalance,depotOverrides,onDepotsChange}){
+function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onRebalance,depotOverrides,onDepotsChange,focusStop}){
   const region=REGIONS[regionKey];
   const data=routeOverrides[regionKey]||ROUTE_DATA[regionKey];
   if(!data)return <div style={{padding:40,textAlign:'center',color:'#94a3b8'}}>No data</div>;
@@ -20,6 +20,23 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
   const[loadMsg,setLoadMsg]=useState('');
   // Per-day depot activation: {dayIndex: [depotName1, depotName2, ...]}
   const[dayDepotActive,setDayDepotActive]=useState({});
+  const[highlightStopId,setHighlightStopId]=useState(null);
+
+  // Jump to a specific stop when a search result is picked.
+  useEffect(()=>{
+    if(!focusStop)return;
+    const d=routeOverrides[regionKey]||ROUTE_DATA[regionKey];
+    if(!d||!d.days[focusStop.day])return;
+    setDay(focusStop.day);
+    setDrv(focusStop.drv);
+    setHighlightStopId(focusStop.stopId);
+    const t=setTimeout(()=>{
+      const el=document.getElementById('stop-'+focusStop.stopId);
+      if(el){el.scrollIntoView({behavior:'smooth',block:'center'});}
+    },60);
+    const t2=setTimeout(()=>setHighlightStopId(null),2400);
+    return()=>{clearTimeout(t);clearTimeout(t2);};
+  },[focusStop&&focusStop.ts,regionKey]);
 
   // Reset selection when region changes
   useEffect(()=>{
@@ -280,7 +297,8 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
     {/* Stop cards */}
     {stops.length>0?stops.map((s,i)=><div key={s.id}>
       <StopCard stop={s} index={i} onAction={onAction} statuses={statuses} onPhotoUpload={onPhotoUpload}
-        onMoveStop={handleMoveStop} moveTargets={moveTargets} currentDay={safeDay} currentDrv={safeDrv}/>
+        onMoveStop={handleMoveStop} moveTargets={moveTargets} currentDay={safeDay} currentDrv={safeDrv}
+        highlight={highlightStopId===s.id}/>
     </div>):
       <div style={{background:'white',borderRadius:12,padding:40,textAlign:'center',color:'#94a3b8',border:'1px solid #e2e8f0'}}>
         No stops for this driver

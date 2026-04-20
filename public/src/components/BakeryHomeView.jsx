@@ -12,6 +12,10 @@ function BakeryHomeView({bakeryId}){
   const[archyCtx,setArchyCtx]=useState(null);
   const[bakeryName,setBakeryName]=useState('');
   const[,setDepotsRev]=useState(0);
+  const[searchQ,setSearchQ]=useState('');
+  const[searchOpen,setSearchOpen]=useState(false);
+  const[focusStop,setFocusStop]=useState(null);
+  const searchBoxRef=useRef();
 
   useEffect(()=>{
     if(!DB2.ready){setBootErr('Supabase not configured.');setSyncing(false);return;}
@@ -96,6 +100,44 @@ function BakeryHomeView({bakeryId}){
   const totalStops=regionEntries.reduce((a,[k])=>a+((window.ROUTE_DATA?.[k]?.ts)||0),0);
   const depotOverrides={};
 
+  // Order search: scan every stop across this bakery's regions/days/drivers.
+  const searchResults=useMemo(()=>{
+    const q=searchQ.trim().toLowerCase();
+    if(q.length<2)return[];
+    const out=[];
+    for(const[key,r]of regionEntries){
+      const data=getRouteData(key);
+      if(!data||!data.days)continue;
+      data.days.forEach((d,di)=>{
+        d.routes.forEach((rt,ri)=>{
+          (rt.stops||[]).forEach(s=>{
+            const hay=[s.co,s.cn,s.ad,s.ci,s.st,s.zp,s.ph].filter(Boolean).join(' ').toLowerCase();
+            if(hay.includes(q)){
+              out.push({regionKey:key,regionName:r.name,regionColor:r.color,day:di,drv:ri,driverName:DRIVER_NAMES[rt.drv!==undefined?rt.drv:ri],stop:s});
+            }
+          });
+        });
+      });
+    }
+    return out.slice(0,30);
+  },[searchQ,regionEntries,routeOverrides]);
+
+  const handlePickResult=useCallback((res)=>{
+    setRegion(res.regionKey);
+    setView('ops');
+    setFocusStop({day:res.day,drv:res.drv,stopId:res.stop.id,ts:Date.now()});
+    setSearchQ('');
+    setSearchOpen(false);
+  },[]);
+
+  useEffect(()=>{
+    const onDocClick=(e)=>{
+      if(searchBoxRef.current&&!searchBoxRef.current.contains(e.target))setSearchOpen(false);
+    };
+    document.addEventListener('mousedown',onDocClick);
+    return()=>document.removeEventListener('mousedown',onDocClick);
+  },[]);
+
   return <div className={`app-shell${view==='ops'||view==='map'?' wide':''}`}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}} className="no-print">
       <div>
@@ -107,6 +149,56 @@ function BakeryHomeView({bakeryId}){
         </span>
       </div>
       <div style={{display:'flex',gap:8,alignItems:'center'}}>
+        <div ref={searchBoxRef} style={{position:'relative'}}>
+          <input
+            type="text"
+            value={searchQ}
+            onChange={e=>{setSearchQ(e.target.value);setSearchOpen(true);}}
+            onFocus={()=>setSearchOpen(true)}
+            placeholder="Search orders…"
+            style={{
+              width:220,padding:'8px 12px',fontSize:13,borderRadius:8,
+              border:'1px solid #e2e8f0',background:'#fff',outline:'none',
+              fontFamily:'inherit'
+            }}
+          />
+          {searchOpen&&searchQ.trim().length>=2&&
+            <div style={{
+              position:'absolute',top:'calc(100% + 4px)',right:0,
+              minWidth:340,maxWidth:420,maxHeight:360,overflowY:'auto',
+              background:'#fff',border:'1px solid #e2e8f0',borderRadius:8,
+              boxShadow:'0 8px 24px rgba(15,23,42,0.08)',zIndex:50
+            }}>
+              {searchResults.length===0?
+                <div style={{padding:'10px 12px',fontSize:12,color:'#94a3b8'}}>No matching orders</div>
+                :searchResults.map((r,i)=>{
+                  const st=statuses[r.stop.id]||'pending';
+                  const dot=st==='delivered'?'#16a34a':st==='failed'?'#dc2626':'#cbd5e1';
+                  return <button key={r.stop.id+'-'+i} onClick={()=>handlePickResult(r)}
+                    style={{
+                      display:'block',width:'100%',textAlign:'left',
+                      padding:'8px 12px',background:'none',border:'none',
+                      borderBottom:'1px solid #f1f5f9',cursor:'pointer',
+                      fontFamily:'inherit'
+                    }}
+                    onMouseEnter={e=>e.currentTarget.style.background='#f8fafc'}
+                    onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                      <span style={{width:6,height:6,borderRadius:'50%',background:dot,display:'inline-block'}}></span>
+                      <span style={{fontSize:13,fontWeight:600,color:'#0f172a'}}>{r.stop.co}</span>
+                    </div>
+                    <div style={{fontSize:12,color:'#64748b'}}>{r.stop.ad}, {r.stop.ci}{r.stop.zp?' '+r.stop.zp:''}</div>
+                    {(r.stop.cn||r.stop.ph)&&
+                      <div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>
+                        {r.stop.cn||''}{r.stop.cn&&r.stop.ph?' · ':''}{r.stop.ph||''}
+                      </div>}
+                    <div style={{fontSize:11,color:r.regionColor||'#64748b',marginTop:3,fontWeight:500}}>
+                      {r.regionName} · Day {r.day+1} · {r.driverName}
+                    </div>
+                  </button>;
+                })}
+            </div>}
+        </div>
         {view==='ops'&&region&&<button onClick={handlePrint} style={{background:'#f1f5f9',color:'#475569',border:'none',borderRadius:8,padding:'8px 14px',fontSize:13,cursor:'pointer',fontWeight:500}}>🖨 Print routes</button>}
         <ProfileSwitcher/>
       </div>
@@ -133,7 +225,7 @@ function BakeryHomeView({bakeryId}){
       })}
     </div>}
 
-    {region&&view==='ops'&&<OpsView regionKey={region} statuses={statuses} onAction={onAction} onPhotoUpload={onPhotoUpload} routeOverrides={routeOverrides} onRebalance={onRebalance} depotOverrides={depotOverrides} onDepotsChange={onDepotsChange}/>}
+    {region&&view==='ops'&&<OpsView regionKey={region} statuses={statuses} onAction={onAction} onPhotoUpload={onPhotoUpload} routeOverrides={routeOverrides} onRebalance={onRebalance} depotOverrides={depotOverrides} onDepotsChange={onDepotsChange} focusStop={focusStop&&window.REGIONS[region]?._bakeryId===bakeryId?focusStop:null}/>}
     {region&&view==='map'&&<MapView regionKey={region} statuses={statuses} routeOverrides={routeOverrides} depotOverrides={depotOverrides}/>}
     {view==='customer'&&<CustomerView statuses={statuses} routeOverrides={routeOverrides}/>}
     {view==='photos'&&<PhotosView routeOverrides={routeOverrides}/>}
