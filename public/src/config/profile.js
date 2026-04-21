@@ -52,7 +52,7 @@
 
   function parseHash(hash) {
     if (!hash) return null;
-    const m = hash.match(/^#\/(admin|bakery|customer)(?:\/([a-f0-9-]{36}))?/i);
+    const m = hash.match(/^#\/(admin|bakery|customer|driver)(?:\/([a-f0-9-]{36}))?/i);
     if (!m) return null;
     return { type: m[1].toLowerCase(), id: m[2] || null };
   }
@@ -60,8 +60,9 @@
   function parseQuery(value) {
     if (!value) return null;
     const [type, id] = value.split(':');
-    if (!type || !/^(admin|bakery|customer)$/i.test(type)) return null;
-    if (type !== 'admin' && !id) return null;
+    if (!type || !/^(admin|bakery|customer|driver)$/i.test(type)) return null;
+    // admin needs no id; driver may have no id (we show a bakery picker).
+    if (type !== 'admin' && type !== 'driver' && !id) return null;
     return { type: type.toLowerCase(), id: id || null };
   }
 

@@ -1,5 +1,10 @@
 // ===== OPERATIONS VIEW (merged bakery + driver) =====
-function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onRebalance,depotOverrides,onDepotsChange,focusStop}){
+// `driverMode` (passed through from BakeryHomeView when mounted inside the
+// driver link) hides every control that could mutate routing: DepotManager
+// (bakery locations), per-day depot activation, the "Manage drivers & days"
+// edit section, and the per-route "Starting from:" depot switcher. The Move
+// button on each StopCard is also hidden via the same flag.
+function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onRebalance,depotOverrides,onDepotsChange,focusStop,driverMode}){
   const region=REGIONS[regionKey];
   const data=routeOverrides[regionKey]||ROUTE_DATA[regionKey];
   if(!data)return <div style={{padding:40,textAlign:'center',color:'#94a3b8'}}>No data</div>;
@@ -139,11 +144,12 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
       </div>
       <ProgressBar done={totalDone} total={allStops.length} color={region.color}/>
 
-      {/* Depot management */}
-      <DepotManager regionKey={regionKey} bakeryId={bakeryId} depots={effectiveDepots} onDepotsChange={onDepotsChange}/>
+      {/* Depot management (hidden for drivers — they can't edit bakery locations) */}
+      {!driverMode&&<DepotManager regionKey={regionKey} bakeryId={bakeryId} depots={effectiveDepots} onDepotsChange={onDepotsChange}/>}
 
-      {/* Per-day depot activation (multi-depot only) */}
-      {effectiveDepots.length>1&&dayData&&<div style={{marginTop:8,padding:10,background:'#fefce8',borderRadius:8,border:'1px solid #fde68a'}}>
+      {/* Per-day depot activation (multi-depot only). Hidden for drivers because
+          toggling it requires a rebalance, which drivers can't run. */}
+      {!driverMode&&effectiveDepots.length>1&&dayData&&<div style={{marginTop:8,padding:10,background:'#fefce8',borderRadius:8,border:'1px solid #fde68a'}}>
         <div style={{fontSize:11,color:'#92400e',fontWeight:600,marginBottom:6}}>Day {safeDay+1} — Active pickup locations</div>
         <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
           {effectiveDepots.map((dep,i)=>{
@@ -174,8 +180,8 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
         <div style={{fontSize:10,color:'#a16207',marginTop:4}}>Toggle locations on/off. Rebalance to apply changes.</div>
       </div>}
 
-      {/* Driver/Day management controls */}
-      <div style={{marginTop:16,borderTop:'1px solid #e2e8f0',paddingTop:12}}>
+      {/* Driver/Day management controls (hidden for drivers) */}
+      {!driverMode&&<div style={{marginTop:16,borderTop:'1px solid #e2e8f0',paddingTop:12}}>
         {!editMode?
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
             <span style={{fontSize:13,color:'#64748b'}}>
@@ -228,7 +234,7 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
               {loading&&<span style={{fontSize:12,color:'#64748b'}}>{loadMsg}</span>}
             </div>
           </div>}
-      </div>
+      </div>}
     </div>
 
     {/* Day pills */}
@@ -263,7 +269,7 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
         <div>
           <div style={{fontSize:16,fontWeight:700}}>{DRIVER_NAMES[route&&route.drv!==undefined?route.drv:safeDrv]} — Day {safeDay+1}</div>
           <div style={{fontSize:13,color:'#64748b'}}>{stops.length} stops · {delivered} done{route&&stops.length>0?` · Est. ${fmtTime(stops[0].eta)}–${fmtTime(stops[stops.length-1].eta+300)}`:''}</div>
-          {route&&route.depot&&effectiveDepots.length>1?
+          {route&&route.depot&&effectiveDepots.length>1&&!driverMode?
             <div style={{fontSize:12,color:'#64748b',marginTop:2,display:'flex',alignItems:'center',gap:4}}>
               Starting from:
               <select value={route.depot} onChange={e=>{
@@ -276,7 +282,7 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
                 {effectiveDepots.map((dep,i)=><option key={i} value={dep.name}>{shortDepot(dep.name)}</option>)}
               </select>
             </div>:
-            route&&route.depot&&<div style={{fontSize:12,color:'#64748b',marginTop:2}}>Starting from: {route.depot}</div>}
+            route&&route.depot&&<div style={{fontSize:12,color:'#64748b',marginTop:2}}>Starting from: {driverMode?shortDepot(route.depot):route.depot}</div>}
           <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Times from OSRM (road network routing), assuming 5 min stop time per location</div>
         </div>
         <div style={{fontSize:28,fontWeight:700,color:region.color}}>{delivered}/{stops.length}</div>
@@ -298,7 +304,7 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
     {stops.length>0?stops.map((s,i)=><div key={s.id}>
       <StopCard stop={s} index={i} onAction={onAction} statuses={statuses} onPhotoUpload={onPhotoUpload}
         onMoveStop={handleMoveStop} moveTargets={moveTargets} currentDay={safeDay} currentDrv={safeDrv}
-        highlight={highlightStopId===s.id}/>
+        highlight={highlightStopId===s.id} driverMode={driverMode}/>
     </div>):
       <div style={{background:'white',borderRadius:12,padding:40,textAlign:'center',color:'#94a3b8',border:'1px solid #e2e8f0'}}>
         No stops for this driver

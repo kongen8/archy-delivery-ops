@@ -2,7 +2,12 @@
 // Mounts the Archy-era region/day/driver flow, but filters window.REGIONS to
 // only this bakery's regions. All other behavior is unchanged from the
 // Plan 1 App.jsx.
-function BakeryHomeView({bakeryId}){
+//
+// When `driverMode` is true, the shell is repurposed for the driver link
+// (`#/driver/<bakery-uuid>`): the header reads "Driver — <bakery>", the tab
+// bar is narrowed to Operations / Map / Photos, and every route-adjusting
+// control further down the tree is hidden via the same flag.
+function BakeryHomeView({bakeryId,driverMode}){
   const[view,setView]=useState('ops');
   const[region,setRegion]=useState(null);
   const[statuses,setStatuses]=useState({});
@@ -141,7 +146,7 @@ function BakeryHomeView({bakeryId}){
   return <div className={`app-shell${view==='ops'||view==='map'?' wide':''}`}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}} className="no-print">
       <div>
-        <h1 style={{fontSize:18,fontWeight:700,margin:0}}>{bakeryName||'Bakery'}</h1>
+        <h1 style={{fontSize:18,fontWeight:700,margin:0}}>{driverMode?`Driver — ${bakeryName||'Bakery'}`:(bakeryName||'Bakery')}</h1>
         <span style={{fontSize:12,color:'#94a3b8'}}>{totalStops} deliveries · {regionEntries.length} region{regionEntries.length===1?'':'s'} · Archy × Daymaker Q2 2026
           {DB2.ready&&<span style={{marginLeft:6,color:'#16a34a'}}>● Live</span>}
           {!DB2.ready&&<span style={{marginLeft:6,color:'#f59e0b'}}>○ Offline</span>}
@@ -207,7 +212,10 @@ function BakeryHomeView({bakeryId}){
     {bootErr&&<div style={{background:'#fef2f2',color:'#991b1b',padding:12,borderRadius:8,marginBottom:12,fontSize:13}}>{bootErr}</div>}
 
     <div style={{display:'flex',gap:0,marginBottom:20,borderBottom:'1px solid #e2e8f0'}} className="no-print">
-      {[{k:'ops',l:'Operations'},{k:'map',l:'🧁 Map'},{k:'customer',l:'Campaign'},{k:'photos',l:'Photos'},{k:'production',l:'Production'}].map(t=>
+      {(driverMode
+        ? [{k:'ops',l:'Operations'},{k:'map',l:'🧁 Map'},{k:'photos',l:'Photos'}]
+        : [{k:'ops',l:'Operations'},{k:'map',l:'🧁 Map'},{k:'customer',l:'Campaign'},{k:'photos',l:'Photos'},{k:'production',l:'Production'}]
+      ).map(t=>
         <button key={t.k} className={`view-tab ${view===t.k?'active':''}`} onClick={()=>setView(t.k)}>{t.l}</button>
       )}
     </div>
@@ -225,7 +233,7 @@ function BakeryHomeView({bakeryId}){
       })}
     </div>}
 
-    {region&&view==='ops'&&<OpsView regionKey={region} statuses={statuses} onAction={onAction} onPhotoUpload={onPhotoUpload} routeOverrides={routeOverrides} onRebalance={onRebalance} depotOverrides={depotOverrides} onDepotsChange={onDepotsChange} focusStop={focusStop&&window.REGIONS[region]?._bakeryId===bakeryId?focusStop:null}/>}
+    {region&&view==='ops'&&<OpsView regionKey={region} statuses={statuses} onAction={onAction} onPhotoUpload={onPhotoUpload} routeOverrides={routeOverrides} onRebalance={onRebalance} depotOverrides={depotOverrides} onDepotsChange={onDepotsChange} focusStop={focusStop&&window.REGIONS[region]?._bakeryId===bakeryId?focusStop:null} driverMode={driverMode}/>}
     {region&&view==='map'&&<MapView regionKey={region} statuses={statuses} routeOverrides={routeOverrides} depotOverrides={depotOverrides}/>}
     {view==='customer'&&<CustomerView statuses={statuses} routeOverrides={routeOverrides}/>}
     {view==='photos'&&<PhotosView routeOverrides={routeOverrides} campaignId={archyCtx&&archyCtx.campaign&&archyCtx.campaign.id}/>}

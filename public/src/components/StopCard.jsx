@@ -1,5 +1,5 @@
 // ===== STOP CARD (with inline photo capture + move) =====
-function StopCard({stop,index,onAction,statuses,onPhotoUpload,onMoveStop,moveTargets,currentDay,currentDrv,highlight}){
+function StopCard({stop,index,onAction,statuses,onPhotoUpload,onMoveStop,moveTargets,currentDay,currentDrv,highlight,driverMode}){
   const status=statuses[stop.id]||'pending';
   const mapUrl=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.ad+', '+stop.ci+', '+stop.st+' '+stop.zp)}`;
   const isDelivered=status==='delivered';
@@ -72,9 +72,9 @@ function StopCard({stop,index,onAction,statuses,onPhotoUpload,onMoveStop,moveTar
             style={{background:'#fef2f2',color:'#dc2626',border:'none',borderRadius:6,padding:'4px 8px',fontSize:11,cursor:'pointer',fontWeight:500}}>
             ✕ Failed</button>
         </div>}
-        <button onClick={()=>setShowMove(!showMove)}
+        {!driverMode&&<button onClick={()=>setShowMove(!showMove)}
           style={{background:showMove?'#e0e7ff':'#f1f5f9',color:showMove?'#4338ca':'#64748b',border:'none',borderRadius:6,padding:'4px 8px',fontSize:11,cursor:'pointer',fontWeight:500,marginTop:2}}>
-          {showMove?'Cancel':'Move'}</button>
+          {showMove?'Cancel':'Move'}</button>}
         {isDelivered&&<button onClick={()=>onAction(stop.id,'pending')}
           style={{background:'#f1f5f9',color:'#94a3b8',border:'none',borderRadius:6,padding:'4px 8px',fontSize:11,cursor:'pointer'}}>
           Undo</button>}

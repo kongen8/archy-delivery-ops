@@ -11,6 +11,9 @@
     { pattern: /^#\/admin\/customer\/([a-f0-9-]{36})$/i, build: m => ({ view: 'admin', page: 'customer-editor', id: m[1], isNew: false }) },
     { pattern: /^#\/admin$/i, build: () => ({ view: 'admin', page: 'list', id: null }) },
     { pattern: /^#\/bakery\/([a-f0-9-]{36})$/i, build: m => ({ view: 'bakery', page: 'home', id: m[1] }) },
+    // Driver link: read-only-ish ops view with no route-adjusting controls.
+    { pattern: /^#\/driver\/([a-f0-9-]{36})$/i, build: m => ({ view: 'driver', page: 'home', id: m[1] }) },
+    { pattern: /^#\/driver$/i, build: () => ({ view: 'driver', page: 'picker', id: null }) },
     // Upload-wizard route — campaignId can be the literal "new" (draft hasn't
     // been created yet) or a UUID (resume an existing draft).
     { pattern: /^#\/customer\/([a-f0-9-]{36})\/upload\/(new|[a-f0-9-]{36})$/i, build: m => ({ view: 'customer', page: 'upload', customerId: m[1], campaignId: m[2] }) },
@@ -28,6 +31,7 @@
     if (p.type === 'admin') return { view: 'admin', page: 'list', id: null };
     if (p.type === 'bakery' && p.id) return { view: 'bakery', page: 'home', id: p.id };
     if (p.type === 'customer' && p.id) return { view: 'customer', page: 'home', id: p.id };
+    if (p.type === 'driver') return p.id ? { view: 'driver', page: 'home', id: p.id } : { view: 'driver', page: 'picker', id: null };
     return { view: 'landing' };
   }
 

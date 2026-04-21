@@ -24,6 +24,9 @@ function AppRoute({profile, route}){
     }
     return <CustomerHomeView customerId={profile.id}/>;
   }
+  if(profile.type==='driver'){
+    return <DriverHomeView bakeryId={profile.id||null}/>;
+  }
 
   return <div style={{padding:40,textAlign:'center',color:'#94a3b8'}}>Loading…</div>;
 }
