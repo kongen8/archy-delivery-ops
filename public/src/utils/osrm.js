@@ -6,12 +6,17 @@
 // same route don't flood the public OSRM demo server.
 const _geomCache=new Map();      // cacheKey -> lngLat[][]
 const _geomInflight=new Map();   // cacheKey -> Promise<lngLat[][]|null>
+// Use the Vercel /osrm proxy in production to sidestep OSRM's CORS policy on
+// router.project-osrm.org. Local dev (no proxy) falls back to a direct call.
+const _OSRM_BASE=(/^(localhost|127\.0\.0\.1|\[?::1\]?)$/.test(window.location.hostname))
+  ? 'https://router.project-osrm.org/'
+  : '/osrm/';
 function _osrmKey(coordPairs){
   return coordPairs.map(c=>`${c.lt.toFixed(5)},${c.ln.toFixed(5)}`).join('|');
 }
 async function _osrmFetchFull(coordPairs,signal){
   const coords=coordPairs.map(c=>`${c.ln},${c.lt}`).join(';');
-  const url=`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
+  const url=`${_OSRM_BASE}route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
   const resp=await fetch(url,signal?{signal}:undefined);
   if(!resp.ok)throw new Error(`OSRM ${resp.status}`);
   const json=await resp.json();

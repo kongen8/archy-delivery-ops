@@ -3,6 +3,7 @@
   "outputDirectory": "public",
   "framework": null,
   "rewrites": [
-    { "source": "/((?!vrp-worker\\.js|vrp/|src/|data/).*)", "destination": "/index.html" }
+    { "source": "/osrm/:path*", "destination": "https://router.project-osrm.org/:path*" },
+    { "source": "/((?!vrp-worker\\.js|vrp/|src/|data/|osrm/).*)", "destination": "/index.html" }
   ]
 }

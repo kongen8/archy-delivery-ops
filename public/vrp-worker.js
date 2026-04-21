@@ -29,7 +29,12 @@
 
 /* global importScripts, VRP_MATRIX, VRP_SOLVER */
 
-importScripts('./vrp/matrix.js', './vrp/solver.js');
+// Forward the parent's cache-buster (?v=...) so matrix.js / solver.js reload
+// in lockstep with the rest of the app when `__BUILD__` is bumped.
+(function () {
+  var qs = (self.location && self.location.search) || '';
+  importScripts('./vrp/matrix.js' + qs, './vrp/solver.js' + qs);
+})();
 
 self.addEventListener('message', async (event) => {
   const msg = event.data || {};

@@ -30,7 +30,14 @@
 (function(global){
   'use strict';
 
-  const OSRM_BASE = 'https://router.project-osrm.org/table/v1/driving/';
+  // Use the Vercel /osrm proxy in production to sidestep OSRM's CORS policy.
+  // self.location is the worker's script origin, which matches the page.
+  // Local dev hits the public OSRM server directly (no proxy configured).
+  const _hostname = (self.location && self.location.hostname) || '';
+  const _isLocal = /^(localhost|127\.0\.0\.1|\[?::1\]?)$/.test(_hostname);
+  const OSRM_BASE = _isLocal
+    ? 'https://router.project-osrm.org/table/v1/driving/'
+    : '/osrm/table/v1/driving/';
   const CHUNK = 80;
   const OSRM_SPACING_MS = 350;
   const MAX_RETRIES = 4;

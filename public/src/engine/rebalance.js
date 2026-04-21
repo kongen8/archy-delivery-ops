@@ -22,11 +22,17 @@ function haversineKm(lat1,lon1,lat2,lon2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
+// Use the Vercel /osrm proxy in production to sidestep OSRM CORS. Local dev
+// hits the public server directly (no proxy configured on localhost).
+const _OSRM_BASE_REBAL=(/^(localhost|127\.0\.0\.1|\[?::1\]?)$/.test(window.location.hostname))
+  ? 'https://router.project-osrm.org/'
+  : '/osrm/';
+
 async function osrmRouteTimes(coordPairs){
   // coordPairs: [{lt,ln},...] — gets sequential leg times including depot→first
   if(coordPairs.length<2)return[];
   const coords=coordPairs.map(c=>`${c.ln},${c.lt}`).join(';');
-  const url=`https://router.project-osrm.org/route/v1/driving/${coords}?overview=false&steps=false`;
+  const url=`${_OSRM_BASE_REBAL}route/v1/driving/${coords}?overview=false&steps=false`;
   try{
     const resp=await fetch(url);
     const json=await resp.json();
@@ -257,7 +263,9 @@ function rebalanceRegionVRP(regionKey,numDays,driversPerDay,onProgress,overrideD
 
     const requestId=Math.random().toString(36).slice(2);
     let worker;
-    try{worker=new Worker('/vrp-worker.js');}
+    // Cache-bust the worker (and its importScripts) with the current build.
+    const _workerV=(typeof window!=='undefined'&&window.__BUILD__)?('?v='+window.__BUILD__):'';
+    try{worker=new Worker('/vrp-worker.js'+_workerV);}
     catch(e){reject(new Error('Worker unavailable: '+e.message));return;}
     let settled=false;
     const cleanup=()=>{settled=true;try{worker.terminate();}catch(_){}};
