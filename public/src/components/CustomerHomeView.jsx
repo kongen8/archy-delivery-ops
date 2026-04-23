@@ -127,7 +127,7 @@ function CampaignCard({campaign,customerId,counts,progress,onPillClick,onDeleted
       <button
         onClick={handleExport}
         disabled={exporting}
-        title="Full practice list with address, contact, bakery, status & delivery photo URL."
+        title="Full practice list with address, contact, bakery, status, delivered date/time & delivery photo URL."
         style={{background:'#f1f5f9',color:'#475569',border:'none',borderRadius:6,padding:'5px 10px',fontSize:12,cursor:exporting?'default':'pointer',fontWeight:500}}>
         {exporting?'Exporting…':'↓ Export EOD Spreadsheet'}
       </button>
@@ -166,6 +166,10 @@ async function exportCampaignEodCsv(campaign){
   const timeMap={};
   for(const[k,v]of Object.entries(statuses||{})){
     if(k.endsWith('_time'))timeMap[k.slice(0,-5)]=v;
+  }
+  const deliveredAtIsoMap={};
+  for(const[k,v]of Object.entries(statuses||{})){
+    if(k.endsWith('_delivered_at'))deliveredAtIsoMap[k.slice(0,-14)]=v;
   }
   const statusFor=id=>statuses[id]||'pending';
 
@@ -209,7 +213,7 @@ async function exportCampaignEodCsv(campaign){
       bakery:r.bakery?.name||'',
       assignment_status:r.assignment_status||'',
       delivery_status:statusFor(r.id),
-      delivered_at:timeMap[r.id]||'',
+      delivered_at:fmtDeliveredAtForSheet(deliveredAtIsoMap[r.id])||timeMap[r.id]||'',
       status_note:noteMap[r.id]||'',
       photo_url:photoMap[r.id]||'',
       recipient_notes:r.notes||'',

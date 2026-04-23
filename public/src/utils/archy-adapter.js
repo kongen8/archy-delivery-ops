@@ -53,6 +53,47 @@
     return palette[Math.abs(h) % palette.length];
   }
 
+  /** Sum of all stops across days/routes (for ts). */
+  function totalStopsInRouteData(d) {
+    if (!d || !Array.isArray(d.days)) return 0;
+    return d.days.reduce(
+      (sum, day) =>
+        sum + (day.routes || []).reduce((s2, rt) => s2 + (rt.stops || []).length, 0),
+      0
+    );
+  }
+
+  /**
+   * Reconcile a saved route tree against the live recipient set for this
+   * bakery+area. Drops phantoms; returns savedIds for stops that were listed
+   * in the file (so the caller can append net-new as unrouted). Does not
+   * touch delivery_statuses_v2 — those are keyed by recipient_id.
+   */
+  function reconcileSavedRoute(savedData, liveRecipIds) {
+    if (!savedData || !Array.isArray(savedData.days)) {
+      return { cleanedData: savedData, droppedCount: 0, savedIds: new Set() };
+    }
+    const savedIds = new Set();
+    let droppedCount = 0;
+    const days = savedData.days.map(dd => ({
+      ...dd,
+      routes: (dd.routes || []).map(rt => {
+        const keptStops = [];
+        for (const s of rt.stops || []) {
+          if (s && s.id) savedIds.add(s.id);
+          if (s && s.id && liveRecipIds.has(s.id)) {
+            keptStops.push(s);
+          } else if (s) {
+            droppedCount++;
+          }
+        }
+        return { ...rt, stops: keptStops, ns: keptStops.length };
+      }),
+    }));
+    const cleanedData = { ...savedData, days, ts: totalStopsInRouteData({ days }) };
+    return { cleanedData, droppedCount, savedIds };
+  }
+
   async function buildLegacyShape() {
     const ctx = await DB2.loadArchyContext();
     if (!ctx) return null;
@@ -127,9 +168,37 @@
       const savedRoute = routes.find(r => r.delivery_area_id === area.id);
 
       if (savedRoute) {
-        // Saved route was serialized before multi-tenant depot ids existed; overlay
-        // the authoritative depot list (with ids) so DepotManager can edit them.
-        ROUTE_DATA[key] = { ...remapSavedRoute(savedRoute.data), depots };
+        const remapped = remapSavedRoute(savedRoute.data);
+        const liveIds = new Set(matchingRecips.map(r => r.id));
+        const { cleanedData, droppedCount, savedIds } = reconcileSavedRoute(remapped, liveIds);
+        const unrouted = matchingRecips.filter(r => !savedIds.has(r.id));
+        const finalData = { ...cleanedData, depots };
+        if (unrouted.length > 0) {
+          const newStops = unrouted.map(r => recipientToStop(r, bakery.name));
+          const days =
+            finalData.days.length > 0
+              ? finalData.days
+              : [{ day: 1, nd: 0, routes: [], depots_active: [] }];
+          const first = { ...days[0] };
+          first.routes = [
+            ...(first.routes || []),
+            {
+              drv: -1,
+              ns: newStops.length,
+              tt: 0,
+              td: 0,
+              depot: '',
+              stops: newStops,
+              _unrouted: true,
+            },
+          ];
+          days[0] = first;
+          finalData.days = days;
+        }
+        finalData.ts = totalStopsInRouteData(finalData);
+        finalData._unroutedCount = unrouted.length;
+        finalData._droppedCount = droppedCount;
+        ROUTE_DATA[key] = finalData;
       } else {
         const stops = matchingRecips.map(r => recipientToStop(r, bakery.name));
         ROUTE_DATA[key] = {

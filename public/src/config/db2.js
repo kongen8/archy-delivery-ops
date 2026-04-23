@@ -58,22 +58,43 @@ const DB2 = {
   async saveRoute(campaignId, bakeryId, deliveryAreaId, routeData) {
     if (!sb) return;
     if (routeData === null) {
-      await sb.from('routes').delete()
+      const { error } = await sb.from('routes').delete()
         .eq('campaign_id', campaignId)
         .eq('bakery_id', bakeryId)
         .eq('delivery_area_id', deliveryAreaId);
+      if (error) console.warn('DB2 saveRoute delete failed:', error);
       return;
     }
-    await sb.from('routes').upsert(
-      {
-        campaign_id: campaignId,
-        bakery_id: bakeryId,
-        delivery_area_id: deliveryAreaId,
-        data: routeData,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'campaign_id,bakery_id,delivery_area_id' }
-    );
+    // Upsert by (campaign_id, bakery_id, delivery_area_id) is no longer an
+    // option: migration 010 replaced the old unique index with a partial one
+    // on (bakery_id, delivery_date, delivery_area_id) WHERE delivery_date IS
+    // NOT NULL. Legacy single-campaign rows have delivery_date = NULL and
+    // thus can't participate in ON CONFLICT at all. Do a manual
+    // select-then-update-or-insert instead.
+    const { data: existing, error: selErr } = await sb.from('routes')
+      .select('id')
+      .eq('campaign_id', campaignId)
+      .eq('bakery_id', bakeryId)
+      .eq('delivery_area_id', deliveryAreaId)
+      .maybeSingle();
+    if (selErr) {
+      console.warn('DB2 saveRoute select failed:', selErr);
+      return;
+    }
+    const payload = {
+      campaign_id: campaignId,
+      bakery_id: bakeryId,
+      delivery_area_id: deliveryAreaId,
+      data: routeData,
+      updated_at: new Date().toISOString(),
+    };
+    if (existing) {
+      const { error } = await sb.from('routes').update(payload).eq('id', existing.id);
+      if (error) console.warn('DB2 saveRoute update failed:', error);
+    } else {
+      const { error } = await sb.from('routes').insert(payload);
+      if (error) console.warn('DB2 saveRoute insert failed:', error);
+    }
   },
 
   async upsertDepot({ id, bakeryId, name, address, lat, lon }) {
@@ -106,8 +127,11 @@ const DB2 = {
       if (row.status !== 'pending') out[row.recipient_id] = row.status;
       if (row.note) out[row.recipient_id + '_note'] = row.note;
       if (row.photo_url) out[row.recipient_id + '_photo'] = row.photo_url;
-      if (row.delivered_at) out[row.recipient_id + '_time'] =
-        new Date(row.delivered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (row.delivered_at) {
+        out[row.recipient_id + '_time'] =
+          new Date(row.delivered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        out[row.recipient_id + '_delivered_at'] = row.delivered_at;
+      }
     });
     return out;
   },

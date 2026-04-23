@@ -8,6 +8,8 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
   const region=REGIONS[regionKey];
   const data=routeOverrides[regionKey]||ROUTE_DATA[regionKey];
   if(!data)return <div style={{padding:40,textAlign:'center',color:'#94a3b8'}}>No data</div>;
+  const unroutedCount = data._unroutedCount || 0;
+  const droppedCount = data._droppedCount || 0;
 
   // Effective depots: overrides first, then authoritative list from window.ROUTE_DATA
   // (the adapter keeps it fresh after each DepotManager write), falling back to
@@ -237,6 +239,24 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
       </div>}
     </div>
 
+    {(unroutedCount > 0 || droppedCount > 0) && (
+      <div style={{
+        background:'#fef3c7',border:'1px solid #f59e0b',color:'#78350f',
+        padding:'8px 12px',borderRadius:6,fontSize:13,marginBottom:12,
+        display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap',
+      }}>
+        <span>
+          {unroutedCount > 0 && <>Warning: {unroutedCount} recipient{unroutedCount===1?' is':'s are'} in this area but not in the saved route. </>}
+          {droppedCount > 0 && <>{droppedCount} stop{droppedCount===1?'':'s'} removed (no longer in campaign/area). </>}
+          Click <strong>Rebalance routes</strong> to align routes with the map — delivery marks are kept (they follow each stop by ID).
+        </span>
+        {!driverMode&&<button onClick={handleRebalance} disabled={loading}
+          style={{background:'#78350f',color:'white',border:'none',borderRadius:4,padding:'4px 10px',fontSize:12,cursor:loading?'wait':'pointer',whiteSpace:'nowrap'}}>
+          {loading?'Routing…':'Rebalance now'}
+        </button>}
+      </div>
+    )}
+
     {/* Day pills */}
     <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
       {data.days.map((d,i)=>{
@@ -256,7 +276,7 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
         const hasMultiDepot=data.depots&&data.depots.length>1;
         return <button key={i} className={`pill ${safeDrv===i?'active':''}`} onClick={()=>setDrv(i)}
           style={safeDrv===i?{}:{}}>
-          <span>{DRIVER_NAMES[r.drv!==undefined?r.drv:i]}</span>
+          <span>{r._unrouted?'Unrouted (new)':(DRIVER_NAMES[r.drv!==undefined?r.drv:i])}</span>
           <span style={{opacity:.7}}> {dd}/{r.stops.length}</span>
           {hasMultiDepot&&r.depot&&<span style={{display:'block',fontSize:10,opacity:.6,marginTop:1}}>{shortDepot(r.depot)}</span>}
         </button>;
@@ -267,7 +287,7 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
     {stops.length>0&&<div style={{background:'white',borderRadius:12,padding:16,marginBottom:12,border:'1px solid #e2e8f0'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
         <div>
-          <div style={{fontSize:16,fontWeight:700}}>{DRIVER_NAMES[route&&route.drv!==undefined?route.drv:safeDrv]} — Day {safeDay+1}</div>
+          <div style={{fontSize:16,fontWeight:700}}>{route&&route._unrouted?'Unrouted (new)':DRIVER_NAMES[route&&route.drv!==undefined?route.drv:safeDrv]} — Day {safeDay+1}</div>
           <div style={{fontSize:13,color:'#64748b'}}>{stops.length} stops · {delivered} done{route&&stops.length>0?` · Est. ${fmtTime(stops[0].eta)}–${fmtTime(stops[stops.length-1].eta+300)}`:''}</div>
           {route&&route.depot&&effectiveDepots.length>1&&!driverMode?
             <div style={{fontSize:12,color:'#64748b',marginTop:2,display:'flex',alignItems:'center',gap:4}}>

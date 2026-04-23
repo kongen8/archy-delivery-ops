@@ -47,7 +47,7 @@ function CustomerView({statuses,routeOverrides}){
               scheduledEta:s.eta?fmtTime(s.eta):'',
               status:st,
               statusNote:statuses[s.id+'_note']||'',
-              deliveredAt:statuses[s.id+'_time']||'',
+              deliveredAt:fmtDeliveredAtForSheet(statuses[s.id+'_delivered_at'])||statuses[s.id+'_time']||'',
               photoUrl:statuses[s.id+'_photo']||'',
               latitude:s.lt,
               longitude:s.ln,
