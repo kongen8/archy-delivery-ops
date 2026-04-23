@@ -28,6 +28,8 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
   // Per-day depot activation: {dayIndex: [depotName1, depotName2, ...]}
   const[dayDepotActive,setDayDepotActive]=useState({});
   const[highlightStopId,setHighlightStopId]=useState(null);
+  // 'all' | 'undelivered' | 'delivered'
+  const[stopFilter,setStopFilter]=useState('all');
 
   // Jump to a specific stop when a search result is picked.
   useEffect(()=>{
@@ -36,6 +38,7 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
     if(!d||!d.days[focusStop.day])return;
     setDay(focusStop.day);
     setDrv(focusStop.drv);
+    setStopFilter('all');
     setHighlightStopId(focusStop.stopId);
     const t=setTimeout(()=>{
       const el=document.getElementById('stop-'+focusStop.stopId);
@@ -320,14 +323,51 @@ function OpsView({regionKey,statuses,onAction,onPhotoUpload,routeOverrides,onReb
       </div>}
     </div>}
 
+    {/* Filter pills */}
+    {stops.length>0&&(()=>{
+      const undeliveredCount=stops.length-delivered;
+      const pill=(key,label,count)=>{
+        const active=stopFilter===key;
+        return <button key={key} onClick={()=>setStopFilter(key)}
+          style={{
+            fontSize:12,borderRadius:6,padding:'5px 12px',cursor:'pointer',fontWeight:500,
+            border:active?'1px solid #0f172a':'1px solid #e2e8f0',
+            background:active?'#0f172a':'#fff',
+            color:active?'#fff':'#64748b',
+          }}>
+          {label} <span style={{opacity:.7}}>{count}</span>
+        </button>;
+      };
+      return <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
+        <span style={{fontSize:12,color:'#94a3b8',marginRight:4}}>Show:</span>
+        {pill('all','All',stops.length)}
+        {pill('undelivered','Undelivered',undeliveredCount)}
+        {pill('delivered','Delivered',delivered)}
+      </div>;
+    })()}
+
     {/* Stop cards */}
-    {stops.length>0?stops.map((s,i)=><div key={s.id}>
-      <StopCard stop={s} index={i} onAction={onAction} statuses={statuses} onPhotoUpload={onPhotoUpload}
-        onMoveStop={handleMoveStop} moveTargets={moveTargets} currentDay={safeDay} currentDrv={safeDrv}
-        highlight={highlightStopId===s.id} driverMode={driverMode}/>
-    </div>):
-      <div style={{background:'white',borderRadius:12,padding:40,textAlign:'center',color:'#94a3b8',border:'1px solid #e2e8f0'}}>
+    {(()=>{
+      const visible=stops.filter(s=>{
+        if(stopFilter==='all')return true;
+        const st=statuses[s.id]||'pending';
+        if(stopFilter==='delivered')return st==='delivered';
+        return st!=='delivered';
+      });
+      if(stops.length===0)return <div style={{background:'white',borderRadius:12,padding:40,textAlign:'center',color:'#94a3b8',border:'1px solid #e2e8f0'}}>
         No stops for this driver
-      </div>}
+      </div>;
+      if(visible.length===0)return <div style={{background:'white',borderRadius:12,padding:40,textAlign:'center',color:'#94a3b8',border:'1px solid #e2e8f0'}}>
+        No {stopFilter==='delivered'?'delivered':'undelivered'} stops for this driver
+      </div>;
+      return visible.map(s=>{
+        const origIdx=stops.indexOf(s);
+        return <div key={s.id}>
+          <StopCard stop={s} index={origIdx} onAction={onAction} statuses={statuses} onPhotoUpload={onPhotoUpload}
+            onMoveStop={handleMoveStop} moveTargets={moveTargets} currentDay={safeDay} currentDrv={safeDrv}
+            highlight={highlightStopId===s.id} driverMode={driverMode}/>
+        </div>;
+      });
+    })()}
   </div>;
 }
