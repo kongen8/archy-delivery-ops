@@ -119,7 +119,7 @@ const DB2 = {
     // Scope by campaign via FK-embed, not a giant IN(...) list (URL overflow at ~918 ids).
     const { data, error } = await sb
       .from('delivery_statuses_v2')
-      .select('recipient_id, status, note, photo_url, delivered_at, recipients!inner(campaign_id)')
+      .select('recipient_id, status, note, photo_url, delivered_at, updated_at, recipients!inner(campaign_id)')
       .eq('recipients.campaign_id', campaignId);
     if (error) { console.warn('DB2 loadStatuses failed:', error); return {}; }
     const out = {};
@@ -127,10 +127,13 @@ const DB2 = {
       if (row.status !== 'pending') out[row.recipient_id] = row.status;
       if (row.note) out[row.recipient_id + '_note'] = row.note;
       if (row.photo_url) out[row.recipient_id + '_photo'] = row.photo_url;
-      if (row.delivered_at) {
+      const at =
+        row.delivered_at ||
+        (row.status === 'delivered' && row.updated_at ? row.updated_at : null);
+      if (at) {
         out[row.recipient_id + '_time'] =
-          new Date(row.delivered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        out[row.recipient_id + '_delivered_at'] = row.delivered_at;
+          new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        out[row.recipient_id + '_delivered_at'] = at;
       }
     });
     return out;
