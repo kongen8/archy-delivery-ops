@@ -207,6 +207,10 @@ function PhotosView({routeOverrides,campaignId}){
                 {p.stop.co||p.id}
               </div>
               {p.stop.ci&&<div style={{fontSize:11,color:'#64748b'}}>{p.stop.ci}</div>}
+              {p.stop.ph&&<a href={`tel:${p.stop.ph}`} onClick={e=>e.stopPropagation()}
+                style={{fontSize:11,color:'#2563eb',textDecoration:'none',fontWeight:500}}>
+                📞 {p.stop.ph}
+              </a>}
               <div style={{display:'flex',alignItems:'center',gap:4,marginTop:2}}>
                 <span style={{display:'inline-block',width:6,height:6,borderRadius:3,background:regionColor}}/>
                 <span style={{fontSize:10,color:'#64748b'}}>{REGIONS[p.region]?.name||p.region}</span>
@@ -233,6 +237,7 @@ function PhotosView({routeOverrides,campaignId}){
             </div>
             <div style={{fontSize:12,color:'#64748b'}}>
               {lightbox.stop.ad?`${lightbox.stop.ad}, ${lightbox.stop.ci||''}`:lightbox.id}
+              {lightbox.stop.ph&&<span> · <a href={`tel:${lightbox.stop.ph}`} style={{color:'#2563eb',textDecoration:'none',fontWeight:500}}>📞 {lightbox.stop.ph}</a></span>}
               {lightbox.delivered_at&&<span> · {fmtWhen(lightbox.delivered_at)}</span>}
             </div>
           </div>
