@@ -142,6 +142,22 @@ function PhotosView({routeOverrides,campaignId}){
     return d.toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'})+' · '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   };
 
+  const copyPhone=useCallback(async(ph,e)=>{
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    const text=String(ph||'').trim();
+    if(!text)return;
+    try{
+      await navigator.clipboard.writeText(text);
+    }catch{
+      const ta=document.createElement('textarea');
+      ta.value=text;ta.style.position='fixed';ta.style.left='-9999px';
+      document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');}catch{}
+      document.body.removeChild(ta);
+    }
+  },[]);
+
   if(!DB2.ready){
     return <div style={{padding:24,textAlign:'center',color:'#64748b',fontSize:14}}>
       Photo databank is only available when connected to Supabase.
@@ -207,10 +223,16 @@ function PhotosView({routeOverrides,campaignId}){
                 {p.stop.co||p.id}
               </div>
               {p.stop.ci&&<div style={{fontSize:11,color:'#64748b'}}>{p.stop.ci}</div>}
-              {p.stop.ph&&<a href={`tel:${p.stop.ph}`} onClick={e=>e.stopPropagation()}
-                style={{fontSize:11,color:'#2563eb',textDecoration:'none',fontWeight:500}}>
-                📞 {p.stop.ph}
-              </a>}
+              {p.stop.ph&&<div style={{display:'flex',alignItems:'center',gap:4,flexWrap:'wrap'}}>
+                <a href={`tel:${p.stop.ph}`} onClick={e=>e.stopPropagation()}
+                  style={{fontSize:11,color:'#2563eb',textDecoration:'none',fontWeight:500}}>
+                  📞 {p.stop.ph}
+                </a>
+                <button type="button" title="Copy number" onClick={e=>copyPhone(p.stop.ph,e)}
+                  style={{flexShrink:0,background:'#e2e8f0',color:'#475569',border:'none',borderRadius:4,padding:'2px 6px',fontSize:9,cursor:'pointer',lineHeight:1.3,fontWeight:600,textTransform:'uppercase',letterSpacing:'.02em'}}>
+                  Copy
+                </button>
+              </div>}
               <div style={{display:'flex',alignItems:'center',gap:4,marginTop:2}}>
                 <span style={{display:'inline-block',width:6,height:6,borderRadius:3,background:regionColor}}/>
                 <span style={{fontSize:10,color:'#64748b'}}>{REGIONS[p.region]?.name||p.region}</span>
@@ -237,7 +259,12 @@ function PhotosView({routeOverrides,campaignId}){
             </div>
             <div style={{fontSize:12,color:'#64748b'}}>
               {lightbox.stop.ad?`${lightbox.stop.ad}, ${lightbox.stop.ci||''}`:lightbox.id}
-              {lightbox.stop.ph&&<span> · <a href={`tel:${lightbox.stop.ph}`} style={{color:'#2563eb',textDecoration:'none',fontWeight:500}}>📞 {lightbox.stop.ph}</a></span>}
+              {lightbox.stop.ph&&<span style={{whiteSpace:'nowrap'}}> · <a href={`tel:${lightbox.stop.ph}`} style={{color:'#2563eb',textDecoration:'none',fontWeight:500}}>📞 {lightbox.stop.ph}</a>
+                <button type="button" title="Copy number" onClick={e=>copyPhone(lightbox.stop.ph,e)}
+                  style={{marginLeft:4,verticalAlign:'middle',background:'#e2e8f0',color:'#475569',border:'none',borderRadius:4,padding:'2px 6px',fontSize:9,cursor:'pointer',lineHeight:1.3,fontWeight:600,textTransform:'uppercase',letterSpacing:'.02em'}}>
+                  Copy
+                </button>
+              </span>}
               {lightbox.delivered_at&&<span> · {fmtWhen(lightbox.delivered_at)}</span>}
             </div>
           </div>
